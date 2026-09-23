@@ -1,7 +1,7 @@
 import { SignUp } from "@clerk/clerk-react";
 
 const SignUpPage = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 px-4 py-8 sm:px-6 sm:py-12">
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 px-4 py-8 sm:px-6 sm:py-12 sm:mt-4 lg:mt-12">
     <div className="w-full max-w-[400px] sm:max-w-[440px] md:max-w-[460px]">
       <SignUp
         path="/sign-up"
