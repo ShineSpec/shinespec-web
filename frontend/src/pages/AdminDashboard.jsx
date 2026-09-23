@@ -23,6 +23,7 @@ import {
   Shield,
   TrendingUp,
   Package,
+  Gift,
   UserPlus,
   KeyRound,
   MessageSquare
