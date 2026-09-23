@@ -83,24 +83,6 @@ const AdminDashboard = () => {
     pagination.users.page
   ]);
   
-  useEffect(() => {
-  fetch(`${API_BASE_URL}/api/admin/referrals`, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-    .then(async (r) => {
-      if (!r.ok) {
-        const err = await r.json().catch(() => ({}));
-        throw new Error(err.message || `Request failed (${r.status})`);
-      }
-      return r.json();
-    })
-    .then((data) => setReferrals(data.referrals || []))
-    .catch((err) => {
-      console.error("Referrals fetch error:", err);
-      toast.error(err.message);
-    })
-    .finally(() => setLoading(false));
-}, []);
 
   const checkAdminAccess = async () => {
     // If no token at all, show 404 immediately
@@ -2140,14 +2122,27 @@ const ReferralsTab = ({ token, API_BASE_URL }) => {
   const [referrals, setReferrals] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchReferrals = async () => {
+    try {
+      const r = await fetch(`${API_BASE_URL}/api/admin/referrals`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.message || `Request failed (${r.status})`);
+      }
+      const data = await r.json();
+      setReferrals(data.referrals || []);
+    } catch (err) {
+      console.error("Referrals fetch error:", err);
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/admin/referrals`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((data) => setReferrals(data.referrals || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    fetchReferrals();
   }, []);
 
   const markPaid = async (referralId, commissionIndex) => {
@@ -2156,12 +2151,7 @@ const ReferralsTab = ({ token, API_BASE_URL }) => {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ commissionIndex }),
     });
-    // Refresh
-    const r = await fetch(`${API_BASE_URL}/api/admin/referrals`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await r.json();
-    setReferrals(data.referrals || []);
+    await fetchReferrals();
   };
 
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" /></div>;
