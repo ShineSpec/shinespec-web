@@ -187,7 +187,7 @@ const ReferEarnPage = () => {
             <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mb-8">
               <span>Payout plan:</span>
               <span className="font-semibold text-gray-900">
-                {existingReferral.payoutPreference === "quick-cash" ? "💵 Quick Cash — R150" : "📈 10% for 5 Bookings"}
+                {existingReferral.payoutPreference === "quick-cash" ? "💵 Quick Cash - R150" : "📈 10% for 5 Bookings"}
               </span>
             </div>
 
@@ -216,7 +216,7 @@ const ReferEarnPage = () => {
             Refer & <span className="font-bold text-black">Earn<span className="text-blue-500">.</span></span>
           </h1>
           <p className="text-gray-700 mt-4 max-w-xl mx-auto">
-            Built for estate agents and property professionals who already recommend trusted services — now get paid for it.
+            Built for estate agents and property professionals who already recommend trusted services - now get paid for it.
           </p>
         </div>
 
@@ -326,7 +326,7 @@ const ReferEarnPage = () => {
                         form.payoutPreference === "quick-cash" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
                       }`}
                     >
-                      <p className="font-semibold text-gray-900 text-sm">💵 Quick Cash — R150 once</p>
+                      <p className="font-semibold text-gray-900 text-sm">💵 Quick Cash - R150 once</p>
                       <p className="text-xs text-gray-500 mt-1">A single R150 cash payment after your first successful referral completes their booking.</p>
                     </button>
                     <button

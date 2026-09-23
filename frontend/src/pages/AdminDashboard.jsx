@@ -83,6 +83,24 @@ const AdminDashboard = () => {
     pagination.users.page
   ]);
   
+  useEffect(() => {
+  fetch(`${API_BASE_URL}/api/admin/referrals`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+    .then(async (r) => {
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.message || `Request failed (${r.status})`);
+      }
+      return r.json();
+    })
+    .then((data) => setReferrals(data.referrals || []))
+    .catch((err) => {
+      console.error("Referrals fetch error:", err);
+      toast.error(err.message);
+    })
+    .finally(() => setLoading(false));
+}, []);
 
   const checkAdminAccess = async () => {
     // If no token at all, show 404 immediately

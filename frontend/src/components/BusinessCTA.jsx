@@ -6,7 +6,7 @@ const highlights = [
   "Office, retail & event cleaning",
   "Airbnb & short-term rental turnovers",
   "Estate agent listing preparation",
-  "Refer & Earn — R150 or 10% on 5 bookings",
+  "Refer & Earn - R150 or 10% on 5 bookings",
 ];
 
 const BusinessCTA = () => {

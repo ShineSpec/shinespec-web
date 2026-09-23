@@ -2,6 +2,7 @@ import { connectDB } from "../lib/db.js";
 import Booking from "../models/Booking.js";
 import Worker from "../models/Worker.js";
 import User from "../models/User.js";
+import Referral from "../models/Referral.js";
 
 // GET ALL BOOKINGS (Admin)
 export const getAllBookings = async (req, res) => {
@@ -453,3 +454,25 @@ export const getAllReferrals = async (req, res) => {
   }
 };
  
+export const markCommissionPaid = async (req, res) => {
+  try {
+    await connectDB();
+    const { id } = req.params;
+    const { commissionIndex } = req.body;
+
+    const referral = await Referral.findById(id);
+    if (!referral) return res.status(404).json({ message: "Referral not found" });
+
+    const commission = referral.commissions?.[commissionIndex];
+    if (!commission) return res.status(400).json({ message: "Invalid commission index" });
+
+    commission.paid = true;
+    commission.paidAt = new Date();
+    await referral.save();
+
+    res.json({ message: "Commission marked as paid", referral });
+  } catch (error) {
+    console.error("Mark commission paid error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
