@@ -85,12 +85,7 @@ const FormalBookingFlow = ({ selectedService, onClose }) => {
   const [authError, setAuthError] = useState('');
 const [authLoading, setAuthLoading] = useState(false);
 const [showServiceVideo, setShowServiceVideo] = useState(true);
-const [token, setToken] = useState(() => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('token');
-  }
-  return null;
-});
+const [token, setToken] = useState(() => localStorage.getItem('token'));
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   // Check for payment success on mount (when returning from payment gateway)
   useEffect(() => {
