@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import PaymentModal from './PaymentModal';
 import AIServiceMatcher from './AIServiceMatcher';
-import { useAuth, useClerk } from '@clerk/clerk-react';
+import { useAuth, useClerk, useUser } from '@clerk/clerk-react';
 import { getAuthToken } from '../lib/auth';
 
 const FormalBookingFlow = ({ selectedService, onClose }) => {
