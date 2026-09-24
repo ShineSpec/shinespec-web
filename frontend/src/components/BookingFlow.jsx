@@ -29,6 +29,7 @@ import { getAuthToken } from '../lib/auth';
 
 const FormalBookingFlow = ({ selectedService, onClose }) => {
   const [step, setStep] = useState(1);
+  const { user: clerkUser } = useUser();
   
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
