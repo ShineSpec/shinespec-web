@@ -1,5 +1,5 @@
 import express from "express";
-import { 
+import {
   initializePayfastPayment,
   verifyPayfastPayment,
   payfastWebhook,
@@ -9,14 +9,16 @@ import { verifyToken } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Public endpoint - no auth needed
+// Public
 router.get("/methods", getPaymentMethods);
 
-// Protected endpoints - require auth
+// Authenticated
 router.post("/payfast/initialize", verifyToken, initializePayfastPayment);
-router.get("/payfast/verify", verifyToken, verifyPayfastPayment);
+router.get("/payfast/verify", verifyToken, verifyPayfastPayment); // read-only status check
 
-// Webhook - NO AUTHENTICATION (PayFast needs to post to this)
-router.post("/payfast/webhook", payfastWebhook);
+// Webhook: no auth (PayFast calls it). PayFast posts form-encoded data, so the
+// urlencoded parser is attached to this route directly instead of relying on
+// what the app registered globally.
+router.post("/payfast/webhook", express.urlencoded({ extended: false }), payfastWebhook);
 
 export default router;

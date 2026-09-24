@@ -96,13 +96,16 @@ const [token, setToken] = useState(() => localStorage.getItem('token'));
     }
   }, []);
   
-
   useEffect(() => {
-    const existingToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    if (existingToken && isGuest) {
-      setIsGuest(false);
-    }
-  }, []);
+  const sync = () => {
+    const t = localStorage.getItem('token');
+    setToken(t);
+    setIsGuest(!t);
+  };
+  window.addEventListener('storage', sync);
+  return () => window.removeEventListener('storage', sync);
+}, []);
+
 
   const PRICING_STRUCTURE = {
     'Indoor Services': {
@@ -3695,6 +3698,7 @@ const ConfirmationStep = () => {
   isOpen={showPaymentModal}
   onClose={() => setShowPaymentModal(false)}
   bookingId={currentBookingId}
+  userEmail={user?.email}
   totalAmount={currentAmount}
   payfastMerchantId={import.meta.env.VITE_PAYFAST_MERCHANT_ID}
   onPaymentSuccess={() => {

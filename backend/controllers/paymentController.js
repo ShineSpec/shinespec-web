@@ -1,106 +1,132 @@
 import axios from "axios";
 import crypto from "crypto";
+import mongoose from "mongoose";
 import Booking from "../models/Booking.js";
 import User from "../models/User.js";
 import Worker from "../models/Worker.js";
 import { connectDB } from "../lib/db.js";
 import { processReferralCommission } from "./authController.js";
 
-// PayFast Configuration
-const PAYFAST_MERCHANT_ID = process.env.PAYFAST_MERCHANT_ID;
-const PAYFAST_MERCHANT_KEY = process.env.PAYFAST_MERCHANT_KEY;
-const PAYFAST_API_URL = process.env.PAYFAST_API_URL || "https://api.payfast.co.za";
+// Set PAYFAST_SANDBOX=true in env only when testing against the PayFast sandbox.
+const PAYFAST_HOST =
+  process.env.PAYFAST_SANDBOX === "true" ? "sandbox.payfast.co.za" : "www.payfast.co.za";
 
-// ✅ Get available payment methods
+const VALID_METHODS = ["credit_card", "instant_eft", "snapscan", "samsung_pay"];
+
+// ─────────────────────────────────────────────────────────────
+// Signature helpers
+// ─────────────────────────────────────────────────────────────
+// >>> helpers
+// Matches PHP urlencode(), which is what PayFast uses to build signatures.
+const pfEncode = (value) =>
+  encodeURIComponent(String(value).trim())
+    .replace(/[!'()*~]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+    .replace(/%20/g, "+");
+
+const md5 = (str) => crypto.createHash("md5").update(str).digest("hex");
+
+// Checkout signature: fields in the order they are posted, blanks skipped.
+const generateCheckoutSignature = (data, passphrase = "") => {
+  let str = Object.keys(data)
+    .filter((k) => k !== "signature" && data[k] !== "" && data[k] !== null && data[k] !== undefined)
+    .map((k) => `${k}=${pfEncode(data[k])}`)
+    .join("&");
+  if (passphrase) str += `&passphrase=${pfEncode(passphrase)}`;
+  return md5(str);
+};
+
+// ITN parameter string: every field in the order received, blanks INCLUDED,
+// stopping at "signature". No passphrase here (see below where it is added).
+const buildItnParamString = (data) => {
+  const parts = [];
+  for (const key of Object.keys(data)) {
+    if (key === "signature") break;
+    parts.push(`${key}=${pfEncode(data[key] ?? "")}`);
+  }
+  return parts.join("&");
+};
+
+const safeEqual = (a, b) => {
+  const A = Buffer.from(String(a || ""));
+  const B = Buffer.from(String(b || ""));
+  return A.length === B.length && crypto.timingSafeEqual(A, B);
+};
+// <<< helpers
+
+// PayFast posts ITNs as application/x-www-form-urlencoded. The route parses it,
+// this is a fallback in case the body arrives as a raw string/Buffer.
+const parseItnBody = (req) => {
+  const b = req.body;
+  if (b && typeof b === "object" && !Buffer.isBuffer(b) && Object.keys(b).length) return b;
+  const raw = Buffer.isBuffer(b) ? b.toString("utf8") : typeof b === "string" ? b : "";
+  return raw ? Object.fromEntries(new URLSearchParams(raw)) : {};
+};
+
+// Ask PayFast to confirm the ITN really came from them.
+const confirmWithPayFast = async (paramString) => {
+  const { data } = await axios.post(`https://${PAYFAST_HOST}/eng/query/validate`, paramString, {
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    timeout: 8000
+  });
+  return String(data).trim() === "VALID";
+};
+
+// ─────────────────────────────────────────────────────────────
+// Payment methods
+// ─────────────────────────────────────────────────────────────
 export const getPaymentMethods = async (req, res) => {
   try {
     res.json({
       success: true,
       methods: [
         {
-          id: 'credit_card',
-          name: 'Credit / Debit Card',
-          description: 'Visa, Mastercard, Debit/Credit Card',
-          icon: '/card.png',
+          id: "credit_card",
+          name: "Credit / Debit Card",
+          description: "Visa, Mastercard, Debit/Credit Card",
+          icon: "/card.png",
           enabled: true
         },
         {
-          id: 'instant_eft',
-          name: 'Instant EFT',
-          description: 'Pay directly from your bank account - Instant verification',
-          icon: '/eft.png',
+          id: "instant_eft",
+          name: "Instant EFT",
+          description: "Pay directly from your bank account - Instant verification",
+          icon: "/eft.png",
           enabled: true
         },
         {
-          id: 'snapscan',
-          name: 'SnapScan',
-          description: 'Scan QR to pay',
-          icon: '/snapscan.png',
+          id: "snapscan",
+          name: "SnapScan",
+          description: "Scan QR to pay",
+          icon: "/snapscan.png",
           enabled: true
         },
         {
-          id: 'samsung_pay',
-          name: 'Samsung Pay',
-          description: 'Quick payment',
-          icon: '/samsung-pay.png',
+          id: "samsung_pay",
+          name: "Samsung Pay",
+          description: "Quick payment",
+          icon: "/samsung-pay.png",
           enabled: true
         }
       ]
     });
   } catch (error) {
-    console.error('Get payment methods error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Get payment methods error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
-};
-const generatePayFastSignature = (data, passphrase) => {
-  // Create parameter string
-  let pfOutput = "";
-  
-  for (let key in data) {
-    if (data.hasOwnProperty(key)) {
-      if (data[key] !== "" && data[key] !== null && data[key] !== undefined) {
-        pfOutput += `${key}=${encodeURIComponent(data[key].trim()).replace(/%20/g, "+")}&`;
-      }
-    }
-  }
-  
-  // Remove last ampersand
-  let getString = pfOutput.slice(0, -1);
-  
-  // Add passphrase as LAST parameter (not URL encoded)
-  if (passphrase !== null && passphrase !== "") {
-    getString += `&passphrase=${passphrase.trim()}`;
-  }
-  
-  console.log("🔐 PAYFAST SIGNATURE DEBUG:");
-  console.log("  - Parameter string:", getString);
-  
-  const signature = crypto.createHash("md5").update(getString).digest("hex");
-  console.log("  - Generated signature:", signature);
-  
-  return signature;
 };
 
-// ✅ Map booking payment method to PayFast gateway method
-const mapPaymentMethod = (method) => {
-  const methodMap = {
-    'credit_card': 'cc',
-    'instant_eft': 'eft',
-    'snapscan': 'ss',
-    'samsung_pay': 'sp'
-  };
-  return methodMap[method] || 'cc';
-};
-// ✅ Initialize PayFast Payment
+const mapPaymentMethod = (method) =>
+  ({ credit_card: "cc", instant_eft: "eft", snapscan: "ss", samsung_pay: "sp" }[method] || "cc");
 
+// ─────────────────────────────────────────────────────────────
+// Initialize payment (checkout)
+// ─────────────────────────────────────────────────────────────
 export const initializePayfastPayment = async (req, res) => {
   try {
     await connectDB();
 
     const { bookingId, email, paymentMethod } = req.body;
     const userId = req.user.id;
-
-    console.log('Payment init request:', { bookingId, email, paymentMethod, userId });
 
     if (!bookingId || !email || !paymentMethod) {
       return res.status(400).json({
@@ -109,15 +135,16 @@ export const initializePayfastPayment = async (req, res) => {
       });
     }
 
-    const PAYFAST_MERCHANT_ID = process.env.PAYFAST_MERCHANT_ID;
-    const PAYFAST_MERCHANT_KEY = process.env.PAYFAST_MERCHANT_KEY;
+    if (!VALID_METHODS.includes(paymentMethod)) {
+      return res.status(400).json({ success: false, message: "Unsupported payment method" });
+    }
 
-    if (!PAYFAST_MERCHANT_ID || !PAYFAST_MERCHANT_KEY) {
-      console.error('Missing PayFast credentials');
-      return res.status(500).json({
-        success: false,
-        message: "Payment service not configured"
-      });
+    const merchantId = process.env.PAYFAST_MERCHANT_ID;
+    const merchantKey = process.env.PAYFAST_MERCHANT_KEY;
+
+    if (!merchantId || !merchantKey) {
+      console.error("Missing PayFast credentials");
+      return res.status(500).json({ success: false, message: "Payment service not configured" });
     }
 
     const booking = await Booking.findById(bookingId);
@@ -130,39 +157,28 @@ export const initializePayfastPayment = async (req, res) => {
     }
 
     if (booking.payment?.status === "paid") {
-      return res.status(400).json({
-        success: false,
-        message: "Payment already completed"
-      });
+      return res.status(400).json({ success: false, message: "Payment already completed" });
     }
 
     const totalCost = booking.totalCost || 0;
-    
     if (totalCost <= 0) {
-      console.error('Invalid total cost:', totalCost);
-      return res.status(400).json({
-        success: false,
-        message: "Invalid booking amount"
-      });
+      return res.status(400).json({ success: false, message: "Invalid booking amount" });
     }
 
     const amountInRands = parseFloat(totalCost).toFixed(2);
     const reference = `booking_${bookingId}_${Date.now()}`;
 
-    console.log('Payment details:', { totalCost, amountInRands, reference, paymentMethod });
-
-    const frontendUrl = (process.env.FRONTEND_URL || '').startsWith('http') 
-      ? process.env.FRONTEND_URL 
+    const frontendUrl = (process.env.FRONTEND_URL || "").startsWith("http")
+      ? process.env.FRONTEND_URL
       : `https://${process.env.FRONTEND_URL}`;
 
-    const apiUrl = (process.env.API_BASE_URL || '').startsWith('http')
+    const apiUrl = (process.env.API_BASE_URL || "").startsWith("http")
       ? process.env.API_BASE_URL
       : `https://${process.env.API_BASE_URL}`;
 
-    // ✅ Base payment data (ALWAYS include these)
     const dataForSignature = {
-      merchant_id: PAYFAST_MERCHANT_ID,
-      merchant_key: PAYFAST_MERCHANT_KEY,
+      merchant_id: merchantId,
+      merchant_key: merchantKey,
       return_url: `${frontendUrl}/payment/success?reference=${reference}`,
       cancel_url: `${frontendUrl}/payment/cancel`,
       notify_url: `${apiUrl}/api/payments/payfast/webhook`,
@@ -175,47 +191,24 @@ export const initializePayfastPayment = async (req, res) => {
       custom_str1: bookingId.toString()
     };
 
-    // ✅ ONLY add payment_method for specific methods (NOT for Apple/Samsung Pay)
-    const mappedMethod = mapPaymentMethod(paymentMethod);
-    
-    // Only include payment_method if it's credit card or instant EFT
-    // Samsung Pay is detected automatically by PayFast
-    if (paymentMethod === 'credit_card' || paymentMethod === 'instant_eft') {
-      dataForSignature.payment_method = mappedMethod;
+    // Wallets (Samsung Pay etc.) are auto-detected by PayFast, so only send a
+    // payment_method for card / instant EFT.
+    if (paymentMethod === "credit_card" || paymentMethod === "instant_eft") {
+      dataForSignature.payment_method = mapPaymentMethod(paymentMethod);
     }
-    
-    console.log('Payment data for signature:', {
-      ...dataForSignature,
-      payment_method: dataForSignature.payment_method || 'auto-detect (wallet)'
-    });
 
-    // Generate signature
-    const passphrase = process.env.PAYFAST_PASSPHRASE || "";
-    const signature = generatePayFastSignature(dataForSignature, passphrase);
-    
-    // Create final payment data with signature
-    const paymentData = {
-      ...dataForSignature,
-      signature: signature
-    };
+    const signature = generateCheckoutSignature(dataForSignature, process.env.PAYFAST_PASSPHRASE || "");
+    const paymentData = { ...dataForSignature, signature };
 
-    console.log('Final payment data:', {
-      merchant_id: paymentData.merchant_id,
-      amount: paymentData.amount,
-      m_payment_id: paymentData.m_payment_id,
-      payment_method: paymentData.payment_method || 'not specified',
-      signature: paymentData.signature
-    });
-
-    // Update booking with pending payment
     booking.payment = {
       status: "pending",
       transactionId: reference,
       method: paymentMethod,
       paidAt: null
     };
-
     await booking.save();
+
+    console.log("[PAYFAST INIT]", { bookingId, reference, amount: amountInRands, paymentMethod });
 
     res.status(200).json({
       success: true,
@@ -224,7 +217,6 @@ export const initializePayfastPayment = async (req, res) => {
       reference,
       paymentMethod
     });
-
   } catch (error) {
     console.error("PayFast init error:", error);
     res.status(500).json({
@@ -235,238 +227,210 @@ export const initializePayfastPayment = async (req, res) => {
   }
 };
 
-// ✅ Verify PayFast Payment
+// ─────────────────────────────────────────────────────────────
+// Payment status (READ-ONLY)
+// Called by the success page. It never marks anything as paid; only the
+// signed, PayFast-confirmed ITN webhook below can do that.
+// ─────────────────────────────────────────────────────────────
 export const verifyPayfastPayment = async (req, res) => {
   try {
     await connectDB();
 
     const { reference } = req.query;
-    if (!reference) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Payment reference required" 
-      });
+    const bookingId =
+      typeof reference === "string" && reference.startsWith("booking_") ? reference.split("_")[1] : null;
+
+    if (!bookingId || !mongoose.Types.ObjectId.isValid(bookingId)) {
+      return res.status(400).json({ success: false, status: "invalid", message: "Invalid payment reference" });
     }
 
-    // Extract booking ID from reference (format: booking_ID_timestamp)
-    const bookingId = reference.split('_')[1];
-    
-    const booking = await Booking.findById(bookingId);
+    const booking = await Booking.findById(bookingId)
+      .populate({ path: "assignedWorker", model: Worker, select: "fullName" })
+      .lean();
+
     if (!booking) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Booking not found" 
-      });
+      return res.status(404).json({ success: false, status: "invalid", message: "Booking not found" });
     }
 
-    // Check if payment is already verified
-    if (booking.payment?.status === "paid") {
-      return res.status(200).json({
-        success: true,
-        message: "Payment already verified",
-        booking
-      });
+    // Only the owner (or an admin) may look at this booking
+    if (booking.userId.toString() !== req.user.id) {
+      const requester = await User.findById(req.user.id).select("role").lean();
+      if (requester?.role !== "admin") {
+        return res.status(403).json({ success: false, status: "invalid", message: "Unauthorized" });
+      }
     }
 
-    // Query PayFast API
-    const verifyData = {
-      merchant_id: String(PAYFAST_MERCHANT_ID),
-      merchant_key: String(PAYFAST_MERCHANT_KEY),
-      return_url: `${process.env.FRONTEND_URL}/payment/success`
-    };
+    const status = booking.payment?.status || "pending";
+    const paid = status === "paid";
 
-    const passphrase = process.env.PAYFAST_PASSPHRASE || "";
-    verifyData.signature = generatePayFastSignature(verifyData, passphrase);
-
-    try {
-      const response = await axios.post(
-        `${PAYFAST_API_URL}/eng/query/validate`,
-        new URLSearchParams({
-          ...verifyData,
-          payment_id: reference
-        }).toString(),
-        {
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded"
-          }
-        }
-      );
-
-      // Update booking with payment confirmation - ENSURE ALL FIELDS ARE SET
-      booking.payment.status = "paid";
-      booking.payment.transactionId = reference;
-      booking.payment.m_payment_id = reference;
-      booking.payment.paidAt = new Date();
-      booking.payment.webhookConfirmed = true;
-      booking.payment.method = booking.payment.method || 'payfast'; // Ensure method is preserved
-      booking.status = "confirmed";
-
-      // Assign worker if not already assigned
-      if (booking.preferredProvider && booking.preferredProvider !== "auto-assign") {
-        booking.assignedWorker = booking.preferredProvider;
-      } else if (!booking.assignedWorker) {
-        const worker = await findBestWorker(booking.serviceType);
-        if (worker) booking.assignedWorker = worker._id;
-      }
-
-      await booking.save();
-      await processReferralCommission(booking.userId.toString(), booking.totalCost, booking._id);
-
-      console.log(`✅ Payment verified for booking: ${bookingId}`);
-      console.log(`   Payment status: ${booking.payment.status}`);
-      console.log(`   Booking status: ${booking.status}`);
-
-      if (booking.assignedWorker) {
-        await notifyWorker(booking);
-      }
-
-      res.status(200).json({
-        success: true,
-        message: "Payment verified and booking confirmed",
-        booking
-      });
-
-    } catch (apiError) {
-      console.error("PayFast API error:", apiError.message);
-      
-      // Even if API fails, update booking if we have the reference
-      booking.payment.status = "paid";
-      booking.payment.transactionId = reference;
-      booking.payment.m_payment_id = reference;
-      booking.payment.paidAt = new Date();
-      booking.payment.webhookConfirmed = false; // Mark as not webhook confirmed
-      booking.payment.method = booking.payment.method || 'payfast';
-      booking.status = "confirmed";
-
-      if (booking.preferredProvider && booking.preferredProvider !== "auto-assign") {
-        booking.assignedWorker = booking.preferredProvider;
-      } else if (!booking.assignedWorker) {
-        const worker = await findBestWorker(booking.serviceType);
-        if (worker) booking.assignedWorker = worker._id;
-      }
-
-      await booking.save();
-
-      res.status(200).json({
-        success: true,
-        message: "Payment verified and booking confirmed",
-        booking
-      });
-    }
-
-  } catch (error) {
-    console.error("Verify error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error"
+    res.status(200).json({
+      success: paid,
+      status,
+      message: paid
+        ? "Payment confirmed"
+        : status === "failed"
+        ? "Payment failed"
+        : "Payment not confirmed yet",
+      booking
     });
+  } catch (error) {
+    console.error("Payment status error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// ✅ PayFast Webhook Handler - FIXED to use custom_str1
+// ─────────────────────────────────────────────────────────────
+// PayFast ITN webhook: the ONLY place a booking becomes "paid"
+// ─────────────────────────────────────────────────────────────
 export const payfastWebhook = async (req, res) => {
+  const ack = () => res.status(200).json({ received: true });
+
   try {
+    const itn = parseItnBody(req);
+
+    if (!itn.payment_status || !itn.signature) {
+      console.error("[ITN] empty or malformed body. content-type:", req.headers["content-type"]);
+      return ack();
+    }
+
+    console.log("[ITN] received", {
+      payment_status: itn.payment_status,
+      m_payment_id: itn.m_payment_id,
+      pf_payment_id: itn.pf_payment_id,
+      amount_gross: itn.amount_gross
+    });
+
+    // Check 1: signature
+    const paramString = buildItnParamString(itn);
+    const passphrase = process.env.PAYFAST_PASSPHRASE || "";
+    const expected = md5(passphrase ? `${paramString}&passphrase=${pfEncode(passphrase)}` : paramString);
+
+    if (!safeEqual(itn.signature, expected)) {
+      console.error("[ITN] invalid signature for", itn.m_payment_id);
+      return ack();
+    }
+
+    // Check 2: it is addressed to our merchant account
+    if (String(itn.merchant_id) !== String(process.env.PAYFAST_MERCHANT_ID)) {
+      console.error("[ITN] merchant_id mismatch for", itn.m_payment_id);
+      return ack();
+    }
+
+    // Check 3: PayFast confirms it sent this ITN.
+    // A network error here throws, we return 500 below so the failure is visible and can be retried.
+    const valid = await confirmWithPayFast(paramString);
+    if (!valid) {
+      console.error("[ITN] PayFast did not confirm this ITN:", itn.m_payment_id);
+      return ack();
+    }
+
     await connectDB();
 
-    const webhookData = req.body;
-
-    console.log('Webhook received:', { 
-      payment_status: webhookData.payment_status,
-      custom_int1: webhookData.custom_int1,
-      custom_str1: webhookData.custom_str1,
-      m_payment_id: webhookData.m_payment_id
-    });
-
-    // Verify signature
-    const signature = webhookData.signature;
-    const checkData = { ...webhookData };
-    delete checkData.signature;
-
-    const calculatedSignature = generatePayFastSignature(checkData);
-
-    if (signature !== calculatedSignature) {
-      console.error("Invalid PayFast webhook signature");
-      console.error("Expected:", calculatedSignature);
-      console.error("Received:", signature);
-      return res.status(200).json({ received: true });
+    // custom_str1 is covered by the signature, so it can be trusted now
+    let bookingId = itn.custom_str1;
+    if (!bookingId && itn.m_payment_id?.startsWith("booking_")) {
+      bookingId = itn.m_payment_id.split("_")[1];
     }
-
-    if (webhookData.payment_status !== "COMPLETE") {
-      console.log('Payment status not complete:', webhookData.payment_status);
-      return res.status(200).json({ received: true });
-    }
-
-    // FIXED: Use custom_str1 for booking ID (as set in initialization)
-    // Fallback to extracting from m_payment_id if custom_str1 is not available
-    let bookingId = webhookData.custom_str1;
-    
-    // Fallback: Extract booking ID from m_payment_id format: booking_ID_timestamp
-    if (!bookingId && webhookData.m_payment_id) {
-      const parts = webhookData.m_payment_id.split('_');
-      if (parts.length >= 2 && parts[0] === 'booking') {
-        bookingId = parts[1];
-      }
-    }
-    
-    const m_payment_id = webhookData.m_payment_id;
-
-    if (!bookingId) {
-      console.warn('No booking ID in webhook', {
-        custom_str1: webhookData.custom_str1,
-        m_payment_id: webhookData.m_payment_id
-      });
-      return res.status(200).json({ received: true });
+    if (!bookingId || !mongoose.Types.ObjectId.isValid(bookingId)) {
+      console.error("[ITN] no valid booking id", { custom_str1: itn.custom_str1, m_payment_id: itn.m_payment_id });
+      return ack();
     }
 
     const booking = await Booking.findById(bookingId);
     if (!booking) {
-      console.warn('Booking not found:', bookingId);
-      return res.status(200).json({ received: true });
+      console.error("[ITN] booking not found:", bookingId);
+      return ack();
     }
 
-    if (booking.payment?.status === "paid") {
-      console.log('Payment already processed for booking:', bookingId);
-      return res.status(200).json({ received: true });
+    if (itn.payment_status === "FAILED") {
+      await Booking.updateOne(
+        { _id: booking._id, "payment.status": "pending" },
+        { $set: { "payment.status": "failed" } }
+      );
+      console.log("[ITN] payment failed for booking", bookingId);
+      return ack();
     }
 
-    // Update booking with payment confirmation
-    booking.payment.status = "paid";
-    booking.payment.transactionId = m_payment_id;
-    booking.payment.m_payment_id = m_payment_id;
-    booking.payment.paidAt = new Date();
-    booking.payment.webhookConfirmed = true;
-    booking.payment.method = booking.payment.method || 'payfast'; // Ensure method is set
-    booking.status = "confirmed";
-
-    // Assign worker if not already assigned
-    if (booking.preferredProvider && booking.preferredProvider !== "auto-assign") {
-      booking.assignedWorker = booking.preferredProvider;
-    } else if (!booking.assignedWorker) {
-      const worker = await findBestWorker(booking.serviceType);
-      if (worker) booking.assignedWorker = worker._id;
+    if (itn.payment_status !== "COMPLETE") {
+      console.log("[ITN] ignoring status", itn.payment_status);
+      return ack();
     }
 
-    await booking.save();
-    await processReferralCommission(booking.userId.toString(), booking.totalCost, booking._id);
-
-    console.log(`✅ Webhook confirmed payment for booking: ${bookingId}`);
-    console.log(`   Payment status: ${booking.payment.status}`);
-    console.log(`   Booking status: ${booking.status}`);
-    console.log(`   Transaction ID: ${m_payment_id}`);
-
-    if (booking.assignedWorker) {
-      await notifyWorker(booking);
+    // Check 4: amount matches what we asked for
+    const gross = Number.parseFloat(itn.amount_gross);
+    if (!Number.isFinite(gross) || Math.abs(gross - Number(booking.totalCost)) > 0.01) {
+      console.error("[ITN] AMOUNT MISMATCH, not marking paid", {
+        bookingId,
+        expected: booking.totalCost,
+        received: itn.amount_gross
+      });
+      return ack();
     }
 
-    res.status(200).json({ received: true });
+    // Atomic + idempotent: only the first ITN flips pending -> paid
+    const updated = await Booking.findOneAndUpdate(
+      { _id: booking._id, "payment.status": { $ne: "paid" } },
+      {
+        $set: {
+          "payment.status": "paid",
+          "payment.transactionId": itn.m_payment_id,
+          "payment.m_payment_id": itn.m_payment_id,
+          "payment.paidAt": new Date(),
+          "payment.webhookConfirmed": true,
+          "payment.paymentData": {
+            pf_payment_id: itn.pf_payment_id,
+            payment_status: itn.payment_status,
+            amount_gross: itn.amount_gross,
+            amount_fee: itn.amount_fee,
+            amount_net: itn.amount_net
+          }
+        }
+      },
+      { new: true }
+    );
 
+    if (!updated) {
+      console.log("[ITN] already processed:", bookingId);
+      return ack();
+    }
+
+    // Confirm, but never resurrect a booking that was cancelled in the meantime
+    await Booking.updateOne({ _id: updated._id, status: "pending" }, { $set: { status: "confirmed" } });
+
+    // Assign a worker if none yet
+    let assignedWorker = updated.assignedWorker;
+    if (!assignedWorker) {
+      assignedWorker = updated.preferredProvider || (await findBestWorker(updated.serviceType))?._id;
+      if (assignedWorker) {
+        await Booking.updateOne({ _id: updated._id }, { $set: { assignedWorker } });
+      }
+    }
+
+    console.log("[ITN] booking paid and confirmed:", bookingId);
+
+    // Side effects must not undo the payment if they fail
+    try {
+      await processReferralCommission(updated.userId.toString(), updated.totalCost, updated._id);
+    } catch (err) {
+      console.error("[ITN] referral commission failed for booking", bookingId, err.message);
+    }
+
+    if (assignedWorker) {
+      await notifyWorker({ ...updated.toObject(), assignedWorker });
+    }
+
+    return ack();
   } catch (error) {
-    console.error("Webhook error:", error);
-    res.status(200).json({ received: true });
+    // Genuine failure (DB down, PayFast unreachable). Not a 200, so it shows up
+    // in the logs and PayFast knows we did not process it.
+    console.error("[ITN] webhook error:", error);
+    return res.status(500).json({ received: false });
   }
 };
 
-// Helper: Notify worker
+// ─────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────
 const notifyWorker = async (booking) => {
   try {
     await connectDB();
@@ -484,19 +448,19 @@ const notifyWorker = async (booking) => {
   }
 };
 
-// Helper: Find best worker
 const findBestWorker = async (serviceType) => {
   try {
     await connectDB();
     const serviceTypeMapping = {
-      'Indoor Services': ['Indoor Cleaning'],
-      'Outdoor Services': ['Outdoor Cleaning', 'Gardening'],
-      'Office Cleaning': ['Office Cleaning'],
-      'Moving Cleaning': ['Indoor Cleaning'],
-      'Laundry & Ironing': ['Laundry & Ironing'],
-      'Mom\'s Helper': ['Child Care', 'Cooking'],
-      'Elder Care': ['Elder Care'],
-      'Express Cleaning': ['Indoor Cleaning']
+      "Indoor Services": ["Indoor Cleaning"],
+      "Outdoor Services": ["Outdoor Cleaning", "Gardening"],
+      "Office Cleaning": ["Office Cleaning"],
+      "Moving Cleaning": ["Indoor Cleaning"],
+      "Laundry & Ironing": ["Laundry & Ironing"],
+      "Mom's Helper": ["Child Care", "Cooking"],
+      "Elder Care": ["Elder Care"],
+      "Event Cleaning": ["Indoor Cleaning", "Outdoor Cleaning"],
+      "Express Cleaning": ["Indoor Cleaning"]
     };
 
     const requiredServices = serviceTypeMapping[serviceType] || [];
@@ -504,15 +468,15 @@ const findBestWorker = async (serviceType) => {
 
     const worker = await Worker.findOne({
       serviceTypes: { $in: requiredServices },
-      status: 'approved',
-      isActive: true
+      status: "approved",
+      isActive: { $ne: false } // matches workers where the field is true OR missing
     })
-    .sort({ rating: -1, jobsCompleted: -1 })
-    .lean();
+      .sort({ rating: -1, jobsCompleted: -1 })
+      .lean();
 
     return worker || null;
   } catch (error) {
-    console.error('Error finding best worker:', error.message);
+    console.error("Error finding best worker:", error.message);
     return null;
   }
 };

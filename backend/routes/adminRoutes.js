@@ -175,21 +175,36 @@ router.put("/referrals/:referralId/mark-paid", async (req, res) => {
   try {
     await connectDB();
     const { referralId } = req.params;
-    const { commissionIndex } = req.body;
-    
+    // Accept either { commissionIndexes: [0,1,2] } or the old { commissionIndex: 0 }
+    const indexes = Array.isArray(req.body.commissionIndexes)
+      ? req.body.commissionIndexes
+      : req.body.commissionIndex !== undefined
+      ? [req.body.commissionIndex]
+      : [];
+ 
     const referral = await Referral.findById(referralId);
     if (!referral) return res.status(404).json({ message: "Referral not found" });
-
-    if (commissionIndex !== undefined && referral.commissions[commissionIndex]) {
-      referral.commissions[commissionIndex].paid = true;
+ 
+    let changed = 0;
+    for (const i of indexes) {
+      const c = referral.commissions?.[i];
+      if (c && !c.paid) {
+        c.paid = true;
+        c.paidAt = new Date();
+        changed += 1;
+      }
     }
-
+    if (changed === 0) return res.status(400).json({ message: "No unpaid commissions matched" });
+ 
     await referral.save();
-    res.json({ message: "Marked as paid", referral });
+    res.json({ message: `Marked ${changed} commission(s) as paid`, referral });
   } catch (error) {
+    console.error("Mark paid error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
+ 
+
 
 export default router;
 

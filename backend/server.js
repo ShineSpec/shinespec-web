@@ -28,6 +28,9 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
+
 // IMPORTANT: Clerk webhook needs the raw body for signature verification —
 // register it BEFORE express.json()
 app.post(

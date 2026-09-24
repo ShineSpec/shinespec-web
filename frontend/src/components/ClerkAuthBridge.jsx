@@ -10,19 +10,19 @@ const ClerkAuthBridge = () => {
   useEffect(() => {
     const syncToken = async () => {
       if (!isSignedIn) {
-        if (localStorage.getItem("authProvider") === "clerk") {
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            localStorage.removeItem("authProvider");
-            window.dispatchEvent(new Event("storage"));
-        }
-        return;
-    }
+  if (localStorage.getItem("authProvider") === "clerk") {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("authProvider");
+    window.dispatchEvent(new Event("storage"));
+  }
+  return;
+}
 
-    const token = await getToken();
-        if (!token) return;
-            localStorage.setItem("token", token);
-            localStorage.setItem("authProvider", "clerk");
+const token = await getToken();
+if (!token) return;
+localStorage.setItem("token", token);
+localStorage.setItem("authProvider", "clerk");
 
       try {
         const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {

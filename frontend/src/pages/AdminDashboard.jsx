@@ -2145,14 +2145,29 @@ const ReferralsTab = ({ token, API_BASE_URL }) => {
     fetchReferrals();
   }, []);
 
-  const markPaid = async (referralId, commissionIndex) => {
-    await fetch(`${API_BASE_URL}/api/admin/referrals/${referralId}/mark-paid`, {
+  const markAllPaid = async (referral) => {
+  const commissionIndexes = referral.commissions
+    .map((c, i) => (!c.paid ? i : null))
+    .filter((i) => i !== null);
+ 
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/admin/referrals/${referral._id}/mark-paid`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ commissionIndex }),
+      body: JSON.stringify({ commissionIndexes }),
     });
-    await fetchReferrals();
-  };
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Request failed (${res.status})`);
+    }
+    toast.success("Commissions marked as paid");
+    await fetchReferrals(); // the refresh helper from the earlier ReferralsTab fix
+  } catch (err) {
+    console.error("Mark paid error:", err);
+    toast.error(err.message);
+  }
+};
+
 
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" /></div>;
 
@@ -2215,12 +2230,7 @@ const ReferralsTab = ({ token, API_BASE_URL }) => {
                     <td className="px-4 py-4">
                       {unpaid > 0 && (
                         <button
-                          onClick={() => {
-                            const unpaidIndexes = r.commissions
-                              .map((c, i) => (!c.paid ? i : null))
-                              .filter(i => i !== null);
-                            unpaidIndexes.forEach(idx => markPaid(r._id, idx));
-                          }}
+                          onClick={() => markAllPaid(r)}
                           className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                         >
                           Mark all paid
