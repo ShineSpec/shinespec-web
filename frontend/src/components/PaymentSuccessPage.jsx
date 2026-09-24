@@ -17,78 +17,119 @@ import {
 
 const PaymentSuccessPage = () => {
   const [countdown, setCountdown] = useState(10);
-  const [booking, setBooking] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [reference, setReference] = useState(null);
-
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
-  useEffect(() => {
-    // Extract payment reference from URL
-    const params = new URLSearchParams(window.location.search);
-    const ref = params.get('reference') || params.get('m_payment_id');
-    
-    if (ref) {
-      setReference(ref);
-      verifyPayment(ref);
-    } else {
-      setError('No payment reference found');
-      setLoading(false);
-    }
-
-    // Countdown timer
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  // Auto redirect when countdown reaches 0
-  useEffect(() => {
-    if (countdown === 0 && !loading) {
-      window.location.href = '/dashboard';
-    }
-  }, [countdown, loading]);
-
-  const verifyPayment = async (ref) => {
+const [booking, setBooking] = useState(null);
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState(null);
+const [reference, setReference] = useState(null);
+const [paid, setPaid] = useState(false);
+const [stillPending, setStillPending] = useState(false);
+ 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+ 
+// Poll the read-only status endpoint until the webhook has confirmed payment
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const ref = params.get('reference') || params.get('m_payment_id');
+ 
+  if (!ref) {
+    setError('No payment reference found');
+    setLoading(false);
+    return;
+  }
+  setReference(ref);
+ 
+  const MAX_TRIES = 12; // ~60 seconds at 5s intervals
+  let tries = 0;
+  let cancelled = false;
+  let timer;
+ 
+  const check = async () => {
+    tries += 1;
     try {
-      setLoading(true);
-      
+      const token = await getAuthToken(); // fresh or still-valid Clerk token
+      if (!token) throw new Error('not signed in yet'); // Clerk still loading: retry
       const res = await fetch(
         `${API_BASE_URL}/api/payments/payfast/verify?reference=${encodeURIComponent(ref)}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      const data = await res.json();
-
+      const data = await res.json().catch(() => ({}));
+      if (cancelled) return;
+ 
       if (res.ok && data.success) {
         setBooking(data.booking);
-        setError(null);
-      } else {
-        setError(data.message || 'Payment verification failed');
+        setPaid(true);
+        setLoading(false);
+        return;
       }
+      if (res.ok && data.status === 'failed') {
+        setError('Your payment was not completed.');
+        setLoading(false);
+        return;
+      }
+      if ([400, 403, 404].includes(res.status)) {
+        setError(data.message || 'Payment verification failed');
+        setLoading(false);
+        return;
+      }
+      // otherwise: still pending (or a transient 401/500): try again
     } catch (err) {
-      console.error('Payment verification error:', err);
-      setError('Failed to verify payment. Please contact support.');
-    } finally {
-      setLoading(false);
+      console.error('Payment status error:', err);
     }
+ 
+    if (tries >= MAX_TRIES) {
+      setStillPending(true);
+      setLoading(false);
+      return;
+    }
+    timer = setTimeout(check, 5000);
   };
+ 
+  check();
+  return () => {
+    cancelled = true;
+    clearTimeout(timer);
+  };
+}, []);
+ 
+// Countdown + redirect only once payment is actually confirmed
+useEffect(() => {
+  if (!paid) return;
+  const timer = setInterval(() => setCountdown((p) => (p <= 1 ? 0 : p - 1)), 1000);
+  return () => clearInterval(timer);
+}, [paid]);
+ 
+useEffect(() => {
+  if (paid && countdown === 0) window.location.href = '/dashboard';
+}, [paid, countdown]);
+ 
+// ===== STEP 2 =====
+if (stillPending) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-yellow-50 to-blue-50 flex items-center justify-center p-4">
+      <div className="max-w-xl w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
+        <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Clock className="w-10 h-10 text-yellow-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">We're still confirming your payment</h2>
+        <p className="text-gray-600 mb-4">
+          Your bank can take a few minutes. Your booking will be confirmed automatically as soon as
+          PayFast notifies us, and you don't need to pay again.
+        </p>
+        {reference && (
+          <p className="text-sm text-gray-500 mb-6">
+            Reference: <span className="font-mono font-bold">{reference}</span>
+          </p>
+        )}
+        <button
+          onClick={() => (window.location.href = '/dashboard')}
+          className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-all font-semibold"
+        >
+          Go to Dashboard
+        </button>
+      </div>
+    </div>
+  );
+}
 
   const handlePrint = () => {
     window.print();
