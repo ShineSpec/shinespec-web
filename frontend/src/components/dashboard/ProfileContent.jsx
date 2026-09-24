@@ -330,10 +330,10 @@ const ProfileContent = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-4 lg:space-y-6 w-full">
-      <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl lg:rounded-2xl p-4 lg:p-8 text-white shadow-lg">
-        <div className="flex flex-col md:flex-row items-center gap-4 lg:gap-6">
-          <div className="relative group">
-            <div className="w-20 h-20 lg:w-28 lg:h-28 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center overflow-hidden border-4 border-white/20">
+      <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 xl:p-8 text-white shadow-lg">
+        <div className="flex flex-wrap items-center justify-center gap-4 sm:justify-start lg:gap-6">
+          <div className="relative group shrink-0">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 xl:w-28 xl:h-28 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center overflow-hidden border-4 border-white/20">
               {uploadingImage ? (
                 <Loader2 className="w-10 h-10 animate-spin text-white" />
               ) : profileImage ? (
@@ -344,7 +344,7 @@ const ProfileContent = () => {
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <User className="w-10 h-10 lg:w-14 lg:h-14 text-white/70" />
+                <User className="w-10 h-10 sm:w-12 sm:h-12 xl:w-14 xl:h-14 text-white/70" />
               )}
             </div>
             <label className="absolute bottom-0 right-0 bg-blue-500 hover:bg-blue-600 p-2.5 rounded-full cursor-pointer shadow-lg transition-all hover:scale-110">
@@ -366,14 +366,14 @@ const ProfileContent = () => {
               </button>
             )}
           </div>
-          <div className="text-center md:text-left">
-            <h1 className="text-xl lg:text-3xl font-bold mb-1 break-words">{fullName || "Your profile"}</h1>
-            <p className="text-blue-100 flex items-center gap-2 justify-center md:justify-start break-all">
+          <div className="min-w-0 flex-1 basis-56 text-center sm:text-left">
+            <h1 className="text-xl sm:text-2xl xl:text-3xl font-bold mb-1 break-words">{fullName || "Your profile"}</h1>
+            <p className="text-blue-100 flex items-center gap-2 justify-center sm:justify-start break-all">
               <Mail className="w-4 h-4 flex-shrink-0" />
               {email}
             </p>
             {form.mobile && (
-              <p className="text-blue-100 flex items-center gap-2 justify-center md:justify-start mt-1">
+              <p className="text-blue-100 flex items-center gap-2 justify-center sm:justify-start mt-1">
                 <Phone className="w-4 h-4" />
                 {form.mobile}
               </p>
@@ -390,17 +390,17 @@ const ProfileContent = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <section className="bg-white shadow-sm rounded-xl lg:rounded-2xl p-4 lg:p-6 border border-gray-200">
+      <div className="flex flex-wrap items-start gap-4 lg:gap-6">
+        <div className="min-w-0 flex-[2_1_26rem] space-y-4 lg:space-y-6">
+          <section className="bg-white shadow-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200">
             <div className="flex items-center justify-between mb-4 lg:mb-6">
-              <h2 className="text-lg lg:text-xl font-semibold text-gray-800 flex items-center gap-2">
-                <User className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-800 flex items-center gap-2">
+                <User className="w-5 h-5 text-blue-600" />
                 Personal Information
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-4 lg:gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
                 <input
@@ -430,21 +430,23 @@ const ProfileContent = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <label className="block text-sm font-medium text-gray-700">Email Address</label>
+                  {emailVerified && (
+                    <span className="flex shrink-0 items-center gap-1 text-xs text-green-600 font-medium">
+                      <CheckCircle className="w-4 h-4" />
+                      Verified
+                    </span>
+                  )}
+                </div>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
                   <input
                     type="email"
                     value={email}
                     disabled
-                    className="w-full pl-10 pr-24 p-3 rounded-lg bg-gray-50 text-gray-600 border border-gray-200 cursor-not-allowed"
+                    className="w-full pl-10 pr-3 p-3 rounded-lg bg-gray-50 text-gray-600 border border-gray-200 cursor-not-allowed"
                   />
-                  {emailVerified && (
-                    <span className="absolute right-3 top-3 flex items-center gap-1 text-xs text-green-600 font-medium">
-                      <CheckCircle className="w-4 h-4" />
-                      Verified
-                    </span>
-                  )}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
                   {googleAccount
@@ -473,7 +475,7 @@ const ProfileContent = () => {
             </div>
           </section>
 
-          <section className="bg-white shadow-sm rounded-2xl p-6 border border-gray-200">
+          <section className="bg-white shadow-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200">
             <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
               <Building2 className="w-5 h-5 text-blue-600" />
               Company Information
@@ -494,8 +496,8 @@ const ProfileContent = () => {
           </section>
         </div>
 
-        <div className="space-y-6">
-          <section className="bg-white shadow-sm rounded-2xl p-6 border border-gray-200">
+        <div className="min-w-0 flex-[1_1_18rem] space-y-4 lg:space-y-6">
+          <section className="bg-white shadow-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200">
             <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <KeyRound className="w-5 h-5 text-blue-600" />
               Sign-in methods
@@ -503,7 +505,7 @@ const ProfileContent = () => {
             <div className="space-y-3">
               {googleAccount && (
                 <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
-                  <span className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center font-bold text-[#4285F4]">
+                  <span className="w-8 h-8 shrink-0 rounded-full bg-white border border-gray-200 flex items-center justify-center font-bold text-[#4285F4]">
                     G
                   </span>
                   <div className="min-w-0 flex-1">
@@ -512,13 +514,13 @@ const ProfileContent = () => {
                       {googleAccount.emailAddress || email}
                     </p>
                   </div>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">
+                  <span className="shrink-0 text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">
                     Connected
                   </span>
                 </div>
               )}
               <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
-                <span className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center">
+                <span className="w-8 h-8 shrink-0 rounded-full bg-white border border-gray-200 flex items-center justify-center">
                   <Lock className="w-4 h-4 text-gray-500" />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -526,7 +528,7 @@ const ProfileContent = () => {
                   <p className="text-xs text-gray-500 truncate">{hasPassword ? email : "Not set up"}</p>
                 </div>
                 <span
-                  className={`text-xs px-2 py-0.5 rounded-full border ${
+                  className={`shrink-0 text-xs px-2 py-0.5 rounded-full border ${
                     hasPassword
                       ? "bg-green-50 text-green-700 border-green-200"
                       : "bg-gray-100 text-gray-500 border-gray-200"
@@ -538,7 +540,7 @@ const ProfileContent = () => {
             </div>
           </section>
 
-          <section className="bg-white shadow-sm rounded-2xl p-6 border border-gray-200">
+          <section className="bg-white shadow-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200">
             <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Shield className="w-5 h-5 text-blue-600" />
               Security
@@ -554,7 +556,7 @@ const ProfileContent = () => {
             </div>
           </section>
 
-          <section className="lg:hidden bg-white shadow-sm rounded-2xl p-6 border border-gray-200">
+          <section className="lg:hidden bg-white shadow-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200">
             <button
               onClick={handleLogout}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 text-red-500 hover:bg-gray-50 rounded-lg transition border border-red-200"
@@ -564,7 +566,7 @@ const ProfileContent = () => {
             </button>
           </section>
 
-          <section className="bg-white shadow-sm rounded-2xl p-6 border border-gray-200">
+          <section className="bg-white shadow-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200">
             <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Bell className="w-5 h-5 text-blue-600" />
               Preferences
@@ -591,7 +593,7 @@ const ProfileContent = () => {
             disabled={updating || hasErrors}
             className={`w-full flex items-center justify-center gap-2 ${
               updating || hasErrors ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
-            } text-white px-6 py-4 rounded-lg shadow-lg transition transform hover:scale-105`}
+            } text-white px-6 py-4 rounded-lg shadow-lg hover:shadow-xl transition`}
           >
             {updating ? (
               <>
@@ -609,10 +611,10 @@ const ProfileContent = () => {
       </div>
 
       {showPasswordModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl bg-white p-4 shadow-2xl sm:p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
                 <Lock className="w-6 h-6 text-blue-600" />
                 {hasPassword ? "Change Password" : "Set a Password"}
               </h3>
@@ -700,7 +702,7 @@ const ProfileContent = () => {
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="flex flex-col-reverse gap-3 mt-6 sm:flex-row">
               <button
                 onClick={closePasswordModal}
                 className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
