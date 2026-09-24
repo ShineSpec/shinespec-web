@@ -14,6 +14,7 @@ import {
   Loader,
   AlertCircle
 } from 'lucide-react';
+import { getAuthToken } from '../lib/auth';
 
 const PaymentSuccessPage = () => {
   const [countdown, setCountdown] = useState(10);

@@ -39,12 +39,14 @@ import BusinessServices from "./pages/BusinessServices";
 import ReferEarnPage from "./pages/ReferEarnPage";
 import PropertyManagerDashboard from "./pages/PropertyManagerDashboard";
 import useReferralCapture from "./hooks/useReferralCapture";
+import { getAuthToken } from "./lib/auth";
 
 const AppContent = () => {
   const toast = useToast();
   useReferralCapture(); 
 
   useEffect(() => {
+    let handlingExpiry = false;
     AOS.init({
       duration: 1000,
       easing: "ease-in-out",
@@ -53,48 +55,44 @@ const AppContent = () => {
     });
 
     // Set up axios interceptor to handle token expiration
-    const responseInterceptor = axios.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          const errorMessage = error.response?.data?.message || "";
-          
-          // Check if it's a token expiration error
-          if (errorMessage.includes("expired") || errorMessage.includes("Token expired")) {
-            // Save the current path so the user returns here after login
-            const currentPath = window.location.pathname + window.location.search;
-            if (currentPath && currentPath !== "/login" && currentPath !== "/sign-up") {
-              localStorage.setItem("redirectAfterLogin", currentPath);
-            }
+  const responseInterceptor = axios.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const original = error.config;
+    const status = error.response?.status;
 
-            // Clear authentication data
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            
-            // Dispatch custom event for Navbar to react
-            window.dispatchEvent(new CustomEvent("userLoggedOut"));
-            
-            // Also trigger storage event for cross-tab sync
-            window.dispatchEvent(new Event("storage"));
-            
-            // Show user-friendly notification
-            toast.error("Your session has expired. Please log in again.", 4000);
-            
-            // Redirect to login page after a short delay
-            setTimeout(() => {
-              window.location.href = "/login";
-            }, 2000);
-          } else {
-            // Show other 401 errors
-            toast.error(formatErrorMessage(error));
-          }
-        } else if (error.response?.status >= 500) {
-          // Show server errors
-          toast.error(formatErrorMessage(error));
+    if (status === 401 && original?.headers?.Authorization) {
+      // 1) try once with a freshly issued token
+      if (!original._retried) {
+        original._retried = true;
+        const fresh = await getAuthToken({ force: true });
+        if (fresh) {
+          original.headers.Authorization = `Bearer ${fresh}`;
+          return axios(original);
         }
-        return Promise.reject(error);
       }
-    );
+
+      // 2) refresh failed or the retry still got a 401: the session is really gone
+      if (!handlingExpiry) {
+        handlingExpiry = true;
+        const currentPath = window.location.pathname + window.location.search;
+        if (!currentPath.startsWith("/login") && !currentPath.startsWith("/sign-up")) {
+          localStorage.setItem("redirectAfterLogin", currentPath);
+        }
+        clearStoredAuth();
+        window.dispatchEvent(new CustomEvent("userLoggedOut"));
+        toast.error("Your session has expired. Please log in again.", 4000);
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 2000);
+      }
+    } else if (status >= 500) {
+      toast.error(formatErrorMessage(error));
+    }
+
+    return Promise.reject(error);
+  }
+);
 
     // Cleanup interceptor on unmount
     return () => {

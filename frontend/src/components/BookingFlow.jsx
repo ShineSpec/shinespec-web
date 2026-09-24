@@ -24,16 +24,11 @@ import {
 } from 'lucide-react';
 import PaymentModal from './PaymentModal';
 import AIServiceMatcher from './AIServiceMatcher';
+import { useAuth, useClerk } from '@clerk/clerk-react';
+import { getAuthToken } from '../lib/auth';
 
 const FormalBookingFlow = ({ selectedService, onClose }) => {
   const [step, setStep] = useState(1);
-  const [user, setUser] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const storedUser = localStorage.getItem('user');
-      return storedUser ? JSON.parse(storedUser) : null;
-    }
-    return null;
-  });
   
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
@@ -68,24 +63,13 @@ const FormalBookingFlow = ({ selectedService, onClose }) => {
   const contentRef = useRef(null);
   const hoursRef = useRef(null);
   const addressInputRef = useRef(null);
-  const [isGuest, setIsGuest] = useState(true); // Track if user is guest
-  const [guestEmail, setGuestEmail] = useState('');
-  const [showAuthModal, setShowAuthModal] = useState(false); // Show login/signup modal before payment
-  const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
-  const [guestFormData, setGuestFormData] = useState({
-    name: '',
-    lastname: '',
-    email: '',
-    password: '',
-    phone: '',
-    confirmPassword: ''
-  });
   const notesRef = useRef("");
   const customRequestRef = useRef("");
-  const [authError, setAuthError] = useState('');
-const [authLoading, setAuthLoading] = useState(false);
+  const { isLoaded, isSignedIn } = useAuth();
+const { openSignIn } = useClerk();
+const isGuest = !isSignedIn;
+const [token, setToken] = useState(null);
 const [showServiceVideo, setShowServiceVideo] = useState(true);
-const [token, setToken] = useState(() => localStorage.getItem('token'));
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   // Check for payment success on mount (when returning from payment gateway)
   useEffect(() => {
@@ -95,16 +79,44 @@ const [token, setToken] = useState(() => localStorage.getItem('token'));
       verifyPayment(reference);
     }
   }, []);
-  
-  useEffect(() => {
-  const sync = () => {
-    const t = localStorage.getItem('token');
-    setToken(t);
-    setIsGuest(!t);
-  };
-  window.addEventListener('storage', sync);
-  return () => window.removeEventListener('storage', sync);
+
+useEffect(() => {
+  let cancelled = false;
+  (async () => {
+    const t = isLoaded && isSignedIn ? await getAuthToken() : null;
+    if (!cancelled) setToken(t);
+    if (t) sessionStorage.removeItem('bookingDraft');
+  })();
+  return () => { cancelled = true; };
+}, [isLoaded, isSignedIn]);
+
+const promptSignIn = () => {
+  sessionStorage.setItem(
+    'bookingDraft',
+    JSON.stringify({ bookingDetails, selectedAddress, savedAt: Date.now() })
+  );
+  openSignIn({
+    fallbackRedirectUrl: window.location.href,
+    signUpFallbackRedirectUrl: window.location.href
+  });
+};
+
+// restore the draft after a reload (only if recent and for the same service)
+useEffect(() => {
+  const raw = sessionStorage.getItem('bookingDraft');
+  if (!raw) return;
+  sessionStorage.removeItem('bookingDraft');
+  try {
+    const d = JSON.parse(raw);
+    const recent = Date.now() - (d.savedAt || 0) < 15 * 60 * 1000;
+    const sameService =
+      !selectedService?.label || d.bookingDetails?.serviceType === selectedService.label;
+    if (!recent || !sameService) return;
+    if (d.bookingDetails) setBookingDetails((p) => ({ ...p, ...d.bookingDetails }));
+    if (d.selectedAddress) setSelectedAddress(d.selectedAddress);
+  } catch {}
 }, []);
+
 
 
   const PRICING_STRUCTURE = {
@@ -233,7 +245,7 @@ const [token, setToken] = useState(() => localStorage.getItem('token'));
         {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${await getAuthToken()}`,
             'Content-Type': 'application/json'
           }
         }
@@ -322,11 +334,11 @@ useEffect(() => {
   }
 }, [token, isGuest, step]);
 
-  const fetchAddresses = async (authToken = token) => {
+  const fetchAddresses = async () => {
     try {
       setLoading(true);
       const res = await fetch(`${API_BASE_URL}/api/auth/addresses`, {
-        headers: { Authorization: `Bearer ${authToken || token}` },
+        headers: { Authorization: `Bearer ${await getAuthToken()}` },
       });
       
       if (res.ok) {
@@ -524,7 +536,7 @@ useEffect(() => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${await getAuthToken()}`,
         },
         body: JSON.stringify({
           formattedAddress: newAddress.selectedLocation.label,
@@ -640,7 +652,7 @@ const fetchWorkers = async () => {
       `${API_BASE_URL}/api/auth/approved`,
       {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${await getAuthToken()}`,
         },
       }
     );
@@ -926,7 +938,7 @@ const fetchWorkers = async () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${await getAuthToken()}`,
         },
         body: JSON.stringify({
           workerData: {
@@ -1101,6 +1113,15 @@ const fetchWorkers = async () => {
         alert('Please select a time for your service booking');
         return;
       }
+      if (bookingDetails.serviceType === 'Event Cleaning' &&
+    (!bookingDetails.eventSize || !bookingDetails.eventCleaningScope)) {
+  alert('Please select an event size and a cleaning scope');
+  return;
+}
+if (bookingDetails.serviceType === 'Laundry & Ironing' && !bookingDetails.laundryBundle) {
+  alert('Please choose a laundry bundle');
+  return;
+}
     }
     
     if (step === 2) {
@@ -1131,322 +1152,13 @@ const fetchWorkers = async () => {
   };
 
   const handleSubmitBooking = async () => {
-    // Commit text fields first
-    commitBookingText();
-    
-    try {
-      // Check if user is guest - show auth modal instead
-      if (isGuest) {
-        setShowAuthModal(true);
-        return;
-      }
-  
-      setLoading(true);
-      
-      // Validate required fields
-      if (!selectedAddress || !bookingDetails.scheduledDate || !bookingDetails.scheduledTime) {
-        alert('Please fill in all required fields');
-        setLoading(false);
-        return;
-      }
-      
-      const totalCost = calculateTotal();
-      
-      // FIX: Validate totalCost
-      if (!totalCost || totalCost <= 0) {
-        alert('Invalid booking amount. Please check your booking details.');
-        setLoading(false);
-        return;
-      }
-      
-      // Build address object
-      const addressData = {
-        formattedAddress: selectedAddress.formattedAddress,
-        unitNumber: selectedAddress.unitNumber || '',
-      };
-      
-      if (selectedAddress._id && selectedAddress._id.length === 24) {
-        addressData.addressId = selectedAddress._id;
-      }
-      
-      // BUILD BOOKING DATA
-      const bookingData = {
-        serviceType: bookingDetails.serviceType,
-        address: addressData,
-        customTasks: bookingDetails.extraTasks || [],
-        hoursNeeded: parseFloat(bookingDetails.hoursNeeded),
-        frequency: bookingDetails.frequency,
-        scheduledDate: bookingDetails.scheduledDate,
-        scheduledTime: bookingDetails.scheduledTime,
-        notes: notesRef.current || '',
-        preferredProvider: selectedWorker?._id ? selectedWorker._id : null,
-        totalCost: totalCost, // FIX: Ensure this is included
-        payment: {
-          method: 'payfast',
-          status: 'pending'
-        }
-      };
-  
-      // Add service-specific fields
-      if (bookingDetails.serviceType === 'Event Cleaning') {
-        bookingData.eventSize = bookingDetails.eventSize;
-        bookingData.eventGuestCount = bookingDetails.eventGuestCount;
-        bookingData.eventCleaningScope = bookingDetails.eventCleaningScope;
-        bookingData.eventPackage = bookingDetails.eventPackage;
-      }
-  
-      if (bookingDetails.serviceType === 'Laundry & Ironing') {
-        bookingData.laundryBundle = bookingDetails.laundryBundle;
-      }
-  
-      if (bookingDetails.serviceType === 'Office Cleaning') {
-        bookingData.officeSpecialRequests = {
-          extraProviders: bookingDetails.officeSpecialRequests?.extraProviders || false,
-          highRiskAreas: bookingDetails.officeSpecialRequests?.highRiskAreas || false,
-          earlyMorning: bookingDetails.officeSpecialRequests?.earlyMorning || false,
-          afterHours: bookingDetails.officeSpecialRequests?.afterHours || false,
-          biohazard: bookingDetails.officeSpecialRequests?.biohazard || false,
-          customRequest: customRequestRef.current || ''
-        };
-      }
-  
-      console.log('Creating booking with data:', bookingData);
-  
-      const res = await fetch(`${API_BASE_URL}/api/auth/bookings`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(bookingData)
-      });
-  
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to create booking');
-      }
-  
-      const booking = await res.json();
-      console.log('Booking created:', booking);
-      
-      const bookingId = booking.booking._id || booking.booking.id;
-  
-      // Proceed to payment
-      await handlePaymentFlow();
-    } catch (error) {
-      console.error('Submit booking error:', error);
-      alert('❌ Failed to create booking: ' + error.message);
-      setLoading(false);
-    }
-  };
-
-  const handleGuestAuth = async (e) => {
-    e.preventDefault();
-    setAuthError('');
-    setAuthLoading(true);
-  
-    try {
-      if (authMode === 'signup') {
-        // Validate signup form
-        if (!guestFormData.name || !guestFormData.lastname || !guestFormData.email || 
-            !guestFormData.password || !guestFormData.phone) {
-          setAuthError('Please fill in all fields');
-          setAuthLoading(false);
-          return;
-        }
-  
-        if (guestFormData.password !== guestFormData.confirmPassword) {
-          setAuthError('Passwords do not match');
-          setAuthLoading(false);
-          return;
-        }
-  
-        if (guestFormData.password.length < 6) {
-          setAuthError('Password must be at least 6 characters');
-          setAuthLoading(false);
-          return;
-        }
-  
-        // Signup
-        const signupRes = await fetch(`${API_BASE_URL}/api/auth/signup`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: guestFormData.name,
-            lastname: guestFormData.lastname,
-            email: guestFormData.email,
-            password: guestFormData.password,
-            phone: guestFormData.phone
-          })
-        });
-  
-        if (!signupRes.ok) {
-          const errorData = await signupRes.json();
-          setAuthError(errorData.message || 'Signup failed');
-          setAuthLoading(false);
-          return;
-        }
-  
-        // Signup successful, now auto-login
-        await handleAutoLogin(guestFormData.email, guestFormData.password);
-      } else {
-        // Login mode
-        if (!guestFormData.email || !guestFormData.password) {
-          setAuthError('Please enter email and password');
-          setAuthLoading(false);
-          return;
-        }
-  
-        await handleAutoLogin(guestFormData.email, guestFormData.password);
-      }
-    } catch (error) {
-      console.error('Auth error:', error);
-      setAuthError(error.message || 'Authentication failed');
-      setAuthLoading(false);
-    }
-  };
-  
-  const handleAutoLogin = async (email, password) => {
-    try {
-      const loginRes = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-  
-      if (!loginRes.ok) {
-        const errorData = await loginRes.json();
-        throw new Error(errorData.message || 'Login failed');
-      }
-  
-      const data = await loginRes.json();
-      
-      // Store token and update state
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      setToken(data.token);
-      
-      // Update component state
-      setIsGuest(false);
-      
-      // Reset form
-      setGuestFormData({
-        name: '',
-        lastname: '',
-        email: '',
-        password: '',
-        phone: '',
-        confirmPassword: ''
-      });
-  
-      // CLOSE auth modal IMMEDIATELY - before addresses fetch
-      setShowAuthModal(false);
-      
-      // Set loading to false BEFORE proceeding
-      setAuthLoading(false);
-  
-      // Fetch addresses in background (doesn't block modal closing)
-      try {
-        const addrRes = await fetch(`${API_BASE_URL}/api/auth/addresses`, {
-          headers: { Authorization: `Bearer ${data.token}` },
-        });
-        
-        if (addrRes.ok) {
-          const addrData = await addrRes.json();
-          setAddresses(addrData || []);
-          const defaultAddr = addrData.find(addr => addr.isDefault);
-          if (defaultAddr) {
-            setSelectedAddress(defaultAddr);
-          } else if (addrData.length === 1) {
-            setSelectedAddress(addrData[0]);
-          }
-        }
-      } catch (err) {
-        console.error('Fetch addresses error:', err);
-      }
-  
-      // SHORT DELAY to ensure modal is closed before submitting booking
-      setTimeout(() => {
-        handleSubmitBooking();
-      }, 300);
-  
-    } catch (error) {
-      console.error('Auto login error:', error);
-      setAuthError(error.message || 'Login failed');
-      setAuthLoading(false);
-    }
-  };
-
-  const performLogin = async (email, password) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-  
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Login failed');
-      }
-  
-      const data = await res.json();
-      
-      // Store token and update state
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      setToken(data.token);
-      
-      // Update component state
-      setIsGuest(false);
-      
-      // Reset form
-      setGuestFormData({
-        name: '',
-        lastname: '',
-        email: '',
-        password: '',
-        phone: '',
-        confirmPassword: ''
-      });
-      
-      // CLOSE auth modal IMMEDIATELY - before addresses fetch
-      setShowAuthModal(false);
-      
-      // Set loading to false BEFORE proceeding
-      setAuthLoading(false);
-      
-      // Fetch addresses in background (doesn't block modal closing)
-      try {
-        const addrRes = await fetch(`${API_BASE_URL}/api/auth/addresses`, {
-          headers: { Authorization: `Bearer ${data.token}` },
-        });
-        
-        if (addrRes.ok) {
-          const addrData = await addrRes.json();
-          setAddresses(addrData || []);
-          const defaultAddr = addrData.find(addr => addr.isDefault);
-          if (defaultAddr) {
-            setSelectedAddress(defaultAddr);
-          } else if (addrData.length === 1) {
-            setSelectedAddress(addrData[0]);
-          }
-        }
-      } catch (err) {
-        console.error('Fetch addresses error:', err);
-      }
-  
-      // SHORT DELAY to ensure modal is closed before submitting booking
-      setTimeout(() => {
-        handleSubmitBooking();
-      }, 300);
-  
-    } catch (error) {
-      console.error('Login error:', error);
-      setAuthError(error.message || 'Login failed');
-      setAuthLoading(false);
-    }
-  };
+  commitBookingText();
+  if (isGuest) {
+    promptSignIn();
+    return;
+  }
+  await handlePaymentFlow(); // this is the only place the booking is created
+};
 
   const handlePaymentFlow = async () => {
     try {
@@ -1494,6 +1206,17 @@ const fetchWorkers = async () => {
           status: 'pending'
         }
       };
+
+      if (bookingDetails.serviceType === 'Office Cleaning') {
+       bookingData.officeSpecialRequests = {
+        extraProviders: bookingDetails.officeSpecialRequests?.extraProviders || false,
+        highRiskAreas: bookingDetails.officeSpecialRequests?.highRiskAreas || false,
+        earlyMorning: bookingDetails.officeSpecialRequests?.earlyMorning || false,
+        afterHours: bookingDetails.officeSpecialRequests?.afterHours || false,
+        biohazard: bookingDetails.officeSpecialRequests?.biohazard || false,
+        customRequest: customRequestRef.current || ''
+      };
+    }
   
       // Add service-specific fields if needed
       if (bookingDetails.serviceType === 'Event Cleaning') {
@@ -1511,7 +1234,7 @@ const fetchWorkers = async () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${await getAuthToken()}`
         },
         body: JSON.stringify(bookingData)
       });
@@ -2565,7 +2288,7 @@ onBlurCapture={() => (document.body.style.overflow = "")}
               To view available workers for {bookingDetails.serviceType}, you'll need to create an account or log in. This helps us match you with the perfect service provider for your needs.
             </p>
             <button
-              onClick={() => setShowAuthModal(true)}
+              onClick={promptSignIn}
               className="bg-blue-500 text-white px-8 py-3 rounded-lg hover:bg-blue-600 transition-all font-semibold mb-3"
             >
               Continue & Login/Signup
@@ -3698,7 +3421,7 @@ const ConfirmationStep = () => {
   isOpen={showPaymentModal}
   onClose={() => setShowPaymentModal(false)}
   bookingId={currentBookingId}
-  userEmail={user?.email}
+  userEmail={clerkUser?.primaryEmailAddress?.emailAddress || user?.email}
   totalAmount={currentAmount}
   payfastMerchantId={import.meta.env.VITE_PAYFAST_MERCHANT_ID}
   onPaymentSuccess={() => {
@@ -3824,221 +3547,7 @@ const ConfirmationStep = () => {
           </div>
         </div>
       )}
-      {showAuthModal && (
-  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity duration-300">
-    <div className="bg-white rounded-lg max-w-md w-full p-8 shadow-2xl transition-all duration-300">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-2xl font-bold">
-          {authMode === 'login' ? 'Welcome Back' : 'Complete Your Account'}
-        </h3>
-        <button
-          onClick={() => {
-            setShowAuthModal(false);
-            setAuthError('');
-            setGuestFormData({
-              name: '',
-              lastname: '',
-              email: '',
-              password: '',
-              phone: '',
-              confirmPassword: ''
-            });
-          }}
-          className="p-2 hover:bg-gray-100 rounded-lg"
-          disabled={authLoading}
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* Error Message */}
-      {authError && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2">
-          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-700">{authError}</p>
-        </div>
-      )}
-
-      {/* Form */}
-      <form onSubmit={handleGuestAuth} className="space-y-4">
-        {authMode === 'signup' ? (
-          // Signup Form
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">First Name</label>
-                <input
-                  type="text"
-                  value={guestFormData.name}
-                  onChange={(e) => setGuestFormData({...guestFormData, name: e.target.value})}
-                  className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                  placeholder="First name"
-                  required
-                  disabled={authLoading}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Surname</label>
-                <input
-                  type="text"
-                  value={guestFormData.lastname}
-                  onChange={(e) => setGuestFormData({...guestFormData, lastname: e.target.value})}
-                  className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                  placeholder="Surname"
-                  required
-                  disabled={authLoading}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
-              <div className="flex items-center border-2 border-gray-200 rounded-lg px-3 py-2 focus-within:border-blue-500">
-                <Mail className="w-5 h-5 text-gray-400" />
-                <input
-                  type="email"
-                  value={guestFormData.email}
-                  onChange={(e) => setGuestFormData({...guestFormData, email: e.target.value})}
-                  className="flex-1 outline-none px-2 py-1"
-                  placeholder="Email address"
-                  required
-                  disabled={authLoading}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Phone</label>
-              <div className="flex items-center border-2 border-gray-200 rounded-lg px-3 py-2 focus-within:border-blue-500">
-                <Phone className="w-5 h-5 text-gray-400" />
-                <input
-                  type="tel"
-                  value={guestFormData.phone}
-                  onChange={(e) => setGuestFormData({...guestFormData, phone: e.target.value})}
-                  className="flex-1 outline-none px-2 py-1"
-                  placeholder="+27..."
-                  required
-                  disabled={authLoading}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
-              <div className="flex items-center border-2 border-gray-200 rounded-lg px-3 py-2 focus-within:border-blue-500">
-                <Lock className="w-5 h-5 text-gray-400" />
-                <input
-                  type="password"
-                  value={guestFormData.password}
-                  onChange={(e) => setGuestFormData({...guestFormData, password: e.target.value})}
-                  className="flex-1 outline-none px-2 py-1"
-                  placeholder="Min. 6 characters"
-                  required
-                  minLength={6}
-                  disabled={authLoading}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Confirm Password</label>
-              <div className="flex items-center border-2 border-gray-200 rounded-lg px-3 py-2 focus-within:border-blue-500">
-                <Lock className="w-5 h-5 text-gray-400" />
-                <input
-                  type="password"
-                  value={guestFormData.confirmPassword}
-                  onChange={(e) => setGuestFormData({...guestFormData, confirmPassword: e.target.value})}
-                  className="flex-1 outline-none px-2 py-1"
-                  placeholder="Confirm password"
-                  required
-                  disabled={authLoading}
-                />
-              </div>
-            </div>
-          </>
-        ) : (
-          // Login Form
-          <>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
-              <div className="flex items-center border-2 border-gray-200 rounded-lg px-3 py-2 focus-within:border-blue-500">
-                <Mail className="w-5 h-5 text-gray-400" />
-                <input
-                  type="email"
-                  value={guestFormData.email}
-                  onChange={(e) => setGuestFormData({...guestFormData, email: e.target.value})}
-                  className="flex-1 outline-none px-2 py-1"
-                  placeholder="Email address"
-                  required
-                  disabled={authLoading}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
-              <div className="flex items-center border-2 border-gray-200 rounded-lg px-3 py-2 focus-within:border-blue-500">
-                <Lock className="w-5 h-5 text-gray-400" />
-                <input
-                  type="password"
-                  value={guestFormData.password}
-                  onChange={(e) => setGuestFormData({...guestFormData, password: e.target.value})}
-                  className="flex-1 outline-none px-2 py-1"
-                  placeholder="Password"
-                  required
-                  disabled={authLoading}
-                />
-              </div>
-            </div>
-          </>
-        )}
-
-<button
-  type="submit"
-  disabled={authLoading}
-  className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all font-semibold flex items-center justify-center gap-2"
->
-  {authLoading ? (
-    <>
-      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-      <span>
-        {authMode === 'signup' ? 'Creating Account...' : 'Logging in...'}
-      </span>
-    </>
-  ) : (
-    authMode === 'login' ? 'Login & Pay' : 'Create Account & Pay'
-  )}
-</button>
-      </form>
-
-      {/* Toggle Auth Mode */}
-      <div className="mt-4 text-center">
-        <p className="text-gray-600 text-sm">
-          {authMode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-          <button
-            onClick={() => {
-              setAuthMode(authMode === 'login' ? 'signup' : 'login');
-              setAuthError('');
-              setGuestFormData({
-                name: '',
-                lastname: '',
-                email: '',
-                password: '',
-                phone: '',
-                confirmPassword: ''
-              });
-            }}
-            disabled={authLoading}
-            className="text-blue-600 font-semibold hover:underline disabled:opacity-50"
-          >
-            {authMode === 'login' ? 'Sign up' : 'Login'}
-          </button>
-        </p>
-      </div>
-    </div>
-  </div>
-)}
+      
     </div>
   );
 };
