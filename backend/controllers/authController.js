@@ -2379,3 +2379,64 @@ export const processReferralCommission = async (userId, bookingCost, bookingId =
     console.error("Commission processing error:", error.message);
   }
 };
+
+export const attachReferral = async (req, res) => {
+  try {
+    await connectDB();
+
+    const code = (req.body.referralCode || "").trim().toUpperCase();
+    if (!code) {
+      return res.status(400).json({ message: "Referral code is required" });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Already linked to an agent: never overwrite
+    if (user.referredByAgentId) {
+      return res.json({ attached: false, reason: "already-referred" });
+    }
+
+    // Only brand-new accounts with no bookings can be attributed, so existing
+    // customers can't be linked to an agent later to generate commission
+    const accountAgeMs = Date.now() - new Date(user.createdAt).getTime();
+    const isNewAccount = accountAgeMs < 24 * 60 * 60 * 1000;
+    if (!isNewAccount || (user.referralBookingsCount || 0) > 0) {
+      return res.json({ attached: false, reason: "not-eligible" });
+    }
+
+    const referral = await Referral.findOne({
+      referralCode: code,
+      status: { $in: ["active", "pending"] },
+    });
+    if (!referral) {
+      return res.json({ attached: false, reason: "invalid-code" });
+    }
+
+    // No self-referral
+    const sameUser = referral.userId && referral.userId.toString() === user._id.toString();
+    const sameEmail =
+      referral.email && user.email &&
+      referral.email.toLowerCase() === user.email.toLowerCase();
+    if (sameUser || sameEmail) {
+      return res.json({ attached: false, reason: "self-referral" });
+    }
+
+    // Atomic: only succeeds if the user is still unreferred (prevents double counting)
+    const updated = await User.findOneAndUpdate(
+      { _id: user._id, referredByAgentId: null },
+      { referredBy: code, referredByAgentId: referral._id }
+    );
+    if (!updated) {
+      return res.json({ attached: false, reason: "already-referred" });
+    }
+
+    await Referral.updateOne({ _id: referral._id }, { $inc: { totalReferrals: 1 } });
+
+    console.log(`✅ User ${user.email} referred by agent ${referral.fullName} (${code})`);
+    res.json({ attached: true });
+  } catch (error) {
+    console.error("Attach referral error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};

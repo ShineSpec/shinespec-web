@@ -36,7 +36,8 @@ import {
   getPasswordResetRequests,
   submitReferral,
   getMyReferral,
-  processReferralCommission
+  processReferralCommission,
+  attachReferral
 } from "../controllers/authController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
 import Worker from "../models/Worker.js";
@@ -200,5 +201,7 @@ router.get("/service-applications", verifyToken, getUserApplications);
 
 router.post("/referral-signup", verifyToken, submitReferral);
 router.get("/my-referral", verifyToken, getMyReferral);
+
+router.post("/attach-referral", verifyToken, attachReferral);
 
 export default router;
