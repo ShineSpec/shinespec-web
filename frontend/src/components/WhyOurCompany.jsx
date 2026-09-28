@@ -181,7 +181,7 @@ const WhyOurCompany = () => {
                   "
                 >
                   We ensure only the most qualified and experienced cleaners,
-                  nannies, and caregivers are matched with families—guaranteeing
+                  nannies, and caregivers are matched with families-guaranteeing
                   dependable and top-quality service every time.
                 </p>
               </div>
