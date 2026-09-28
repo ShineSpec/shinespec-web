@@ -9,6 +9,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import SnapScanPayment from './SnapScanPayment';
+import { authFetch, getAuthToken } from '../lib/auth';
 
 const PaymentModal = ({ 
   isOpen, 
@@ -116,54 +117,43 @@ const PaymentModal = ({
   };
 
   const handlePaymentMethodSelect = async (method) => {
-    setSelectedMethod(method.id);
-    setLoading(true);
-    setError('');
+  setSelectedMethod(method.id);
+  setLoading(true);
+  setError('');
 
-    try {
-      // Get user email
-      const userRes = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!userRes.ok) throw new Error('Failed to fetch user info');
-      const user = await userRes.json();
-
-      // Initialize payment with backend
-      console.log('Calling payment initialization...');
-      
-      const res = await fetch(`${API_BASE_URL}/api/payments/payfast/initialize`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          bookingId,
-          email: user.email,
-          paymentMethod: method.id
-        })
-      });
-
-      console.log('Payment init response status:', res.status);
-      const data = await res.json();
-
-      console.log('Payment init response:', data);
-
-      if (!res.ok) {
-        throw new Error(data.message || 'Payment initialization failed');
-      }
-
-      // Process payment - data now contains redirectUrl
-      processPayment(method.id, data, data.reference);
-
-    } catch (err) {
-      console.error('Payment initialization error:', err);
-      setLoading(false);
-      setError(err.message || 'Failed to initialize payment');
-      setStep('error');
+  try {
+    // Fresh token on every request (retries once on a 401)
+    const userRes = await authFetch('/api/auth/me');
+    if (userRes.status === 401) {
+      throw new Error('Your session has expired. Please log in again.');
     }
-  };
+    if (!userRes.ok) throw new Error('Failed to fetch user info');
+    const user = await userRes.json();
+
+    const res = await authFetch('/api/payments/payfast/initialize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bookingId,
+        email: user.email,
+        paymentMethod: method.id
+      })
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data.message || 'Payment initialization failed');
+    }
+
+    await processPayment(method.id, data, data.reference);
+  } catch (err) {
+    console.error('Payment initialization error:', err);
+    setLoading(false);
+    setError(err.message || 'Failed to initialize payment');
+    setStep('error');
+  }
+};
 
   const submitPayFastForm = (paymentData) => {
     setStep('processing');
@@ -189,18 +179,18 @@ const PaymentModal = ({
   // ✅ Process different payment methods
   // Replace the processPayment function:
 
-const processPayment = (methodId, payData, reference) => {
+const processPayment = async (methodId, payData, reference) => {
   switch (methodId) {
-    case 'snapscan':
-      // Show inline SnapScan payment
+    case 'snapscan': {
+      const freshToken = await getAuthToken({ force: true });
       setPaymentComponent(
         <SnapScanPayment
           merchantId={PAYFAST_MERCHANT_ID}
           amount={totalAmount}
           bookingId={bookingId}
-          token={token}
+          token={freshToken}
           reference={reference}
-          onPaymentVerified={(booking) => {
+          onPaymentVerified={() => {
             setStep('success');
             setTimeout(() => {
               onPaymentSuccess?.();
@@ -212,6 +202,7 @@ const processPayment = (methodId, payData, reference) => {
       setStep('inline-payment');
       setLoading(false);
       break;
+    }
 
     case 'credit_card':
     case 'instant_eft':
