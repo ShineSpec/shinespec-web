@@ -33,7 +33,6 @@ import {
   getUserApplications,
   requestPasswordReset,
   verifyPasswordReset,
-  getPasswordResetRequests,
   submitReferral,
   getMyReferral,
   processReferralCommission,
