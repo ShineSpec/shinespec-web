@@ -26,15 +26,32 @@ const ClerkAuthBridge = () => {
       if (!token || cancelled) return;
 
       if (withProfile) {
-        try {
-          const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          localStorage.setItem("user", JSON.stringify(res.data));
-        } catch (err) {
-          console.error("Failed to sync user profile:", err);
-        }
-      }
+  try {
+    const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    localStorage.setItem("user", JSON.stringify(res.data));
+  } catch (err) {
+    console.error("Failed to sync user profile:", err);
+  }
+
+  // Attach a pending referral code (captured from ?ref=) to this account
+  const pendingCode = localStorage.getItem("referralCode");
+  if (pendingCode) {
+    try {
+      await axios.post(
+        `${API_BASE_URL}/api/auth/attach-referral`,
+        { referralCode: pendingCode },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      // The server gave a definitive answer (attached or not eligible), so clear it
+      localStorage.removeItem("referralCode");
+    } catch (err) {
+      // Network or server error: keep the code and retry on the next login
+      console.error("Failed to attach referral:", err);
+    }
+  }
+}
       window.dispatchEvent(new Event("storage"));
     };
 
