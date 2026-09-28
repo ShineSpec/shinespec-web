@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Gift, Clock, Wallet, CheckCircle, AlertCircle, ArrowLeft, Loader2, Lock, User, ArrowRight } from "lucide-react";
+import { useAuth } from "@clerk/clerk-react";
 
 const steps = [
   {
@@ -23,6 +24,7 @@ const steps = [
 const ReferEarnPage = () => {
   const navigate = useNavigate();
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const { getToken } = useAuth();
 
   // ── Auth state ──────────────────────────────────────────────
   const token = localStorage.getItem("token");
@@ -48,25 +50,26 @@ const ReferEarnPage = () => {
 
   // ── On mount: check if this user already has a referral ────
   useEffect(() => {
-    if (!token) { setCheckingExisting(false); return; }
+  if (!token) { setCheckingExisting(false); return; }
 
-    const check = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/auth/my-referral`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.referral) setExistingReferral(data.referral);
-        }
-      } catch (e) {
-        // silently ignore — not critical
-      } finally {
-        setCheckingExisting(false);
+  const check = async () => {
+    try {
+      const freshToken = await getToken(); // NEW
+      const res = await fetch(`${API_BASE_URL}/api/auth/my-referral`, {
+        headers: { Authorization: `Bearer ${freshToken}` }, // CHANGED
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.referral) setExistingReferral(data.referral);
       }
-    };
-    check();
-  }, [token]);
+    } catch (e) {
+      // silently ignore — not critical
+    } finally {
+      setCheckingExisting(false);
+    }
+  };
+  check();
+}, [token]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -75,44 +78,60 @@ const ReferEarnPage = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.fullName || !form.email || !form.phone || !form.agencyName) {
-      setError("Please fill in your name, email, phone, and agency/company name");
+  e.preventDefault();
+
+  if (!form.fullName || !form.email || !form.phone || !form.agencyName) {
+    setError("Please fill in your name, email, phone, and agency/company name");
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(form.email)) {
+    setError("Please enter a valid email address");
+    return;
+  }
+
+  setLoading(true);
+  setError("");
+
+  try {
+    // Ask Clerk for a fresh token at the moment of submit
+    const freshToken = await getToken();
+
+    if (!freshToken) {
+      setError("Your session has expired. Please log in again.");
+      navigate("/login", { state: { returnTo: "/business-services/refer-earn" } });
       return;
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(form.email)) {
-      setError("Please enter a valid email address");
-      return;
+
+    const res = await fetch(`${API_BASE_URL}/api/auth/referral-signup`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${freshToken}`,
+      },
+      body: JSON.stringify(form),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || "Failed to submit");
     }
 
-    setLoading(true);
-    setError("");
+    const data = await res.json();
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/referral-signup`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(form),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Failed to submit");
-      }
-
-      const data = await res.json();
-      setExistingReferral({ referralCode: data.referralCode, payoutPreference: form.payoutPreference, status: "pending" });
-      setSubmitted(true);
-    } catch (err) {
-      setError(err.message || "Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    setExistingReferral({
+      referralCode: data.referralCode,
+      payoutPreference: form.payoutPreference,
+      status: "pending",
+    });
+    setSubmitted(true);
+  } catch (err) {
+    setError(err.message || "Something went wrong. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ── NOT LOGGED IN ───────────────────────────────────────────
   if (!token || !loggedInUser) {
