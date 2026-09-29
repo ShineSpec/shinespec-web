@@ -2875,34 +2875,34 @@ if (bookingDetails.serviceType === 'Laundry & Ironing' && !bookingDetails.laundr
                   </div>
                 )}
 
-{bookingDetails.serviceType === 'Office Cleaning' && (
-  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 mt-4">
-    <h4 className="font-bold text-blue-900 mb-2">Special Requests Included:</h4>
-    <ul className="text-xs text-blue-800 space-y-1">
-      {bookingDetails.officeSpecialRequests?.extraProviders && (
-        <li>✓ Additional Service Providers</li>
-      )}
-      {bookingDetails.officeSpecialRequests?.highRiskAreas && (
-        <li>✓ High-Risk Areas Protection</li>
-      )}
-      {bookingDetails.officeSpecialRequests?.earlyMorning && (
-        <li>✓ Early Morning Service</li>
-      )}
-      {bookingDetails.officeSpecialRequests?.afterHours && (
-        <li>✓ After Hours Service</li>
-      )}
-      {bookingDetails.officeSpecialRequests?.biohazard && (
-        <li>✓ Biohazard Cleaning</li>
-      )}
-      {bookingDetails.officeSpecialRequests?.customRequest && (
-        <li>✓ Custom Request: "{bookingDetails.officeSpecialRequests.customRequest}"</li>
-      )}
-    </ul>
-    <p className="text-xs text-blue-700 mt-2 italic">
-      Additional charges will be applied after our team reviews your request.
-    </p>
-  </div>
-)}
+                {bookingDetails.serviceType === 'Office Cleaning' && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 mt-4">
+                    <h4 className="font-bold text-blue-900 mb-2">Special Requests Included:</h4>
+                    <ul className="text-xs text-blue-800 space-y-1">
+                      {bookingDetails.officeSpecialRequests?.extraProviders && (
+                        <li>✓ Additional Service Providers</li>
+                      )}
+                      {bookingDetails.officeSpecialRequests?.highRiskAreas && (
+                        <li>✓ High-Risk Areas Protection</li>
+                      )}
+                      {bookingDetails.officeSpecialRequests?.earlyMorning && (
+                        <li>✓ Early Morning Service</li>
+                      )}
+                      {bookingDetails.officeSpecialRequests?.afterHours && (
+                        <li>✓ After Hours Service</li>
+                      )}
+                      {bookingDetails.officeSpecialRequests?.biohazard && (
+                        <li>✓ Biohazard Cleaning</li>
+                      )}
+                      {bookingDetails.officeSpecialRequests?.customRequest && (
+                        <li>✓ Custom Request: "{bookingDetails.officeSpecialRequests.customRequest}"</li>
+                      )}
+                    </ul>
+                    <p className="text-xs text-blue-700 mt-2 italic">
+                      Additional charges will be applied after our team reviews your request.
+                    </p>
+                  </div>
+                )}
               </div>
   
               {/* Service Provider Assignment Notice */}
