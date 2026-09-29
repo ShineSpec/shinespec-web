@@ -3261,69 +3261,88 @@ const ConfirmationStep = () => {
     </div>
 
     {/* Progress Bar */}
-    {step < 4 && (
-          <div className="relative mt-4">
-            {/* Connector background - positioned to connect between circles */}
-            <div className="absolute top-5 h-2 bg-gray-200 rounded-full" style={{ left: 'calc(16.67% + 20px)', right: 'calc(16.67% + 20px)' }} />
-            {/* Active connector fill with glow effect */}
+    {/* Progress Bar */}
+{step < 4 && (
+  <div className="w-full max-w-xl mx-auto px-2 sm:px-4">
+    <div className="relative">
+      {/* Connector background */}
+      <div
+        className="absolute top-[15px] sm:top-[17px] left-[16.67%] right-[16.67%] h-1 sm:h-1.5 bg-gray-200 rounded-full"
+      />
+
+      {/* Active connector */}
+      <div
+        className={`
+          absolute top-[15px] sm:top-[17px]
+          left-[16.67%]
+          h-1 sm:h-1.5
+          bg-blue-600 rounded-full
+          transition-all duration-500 ease-out
+          ${
+            step === 1
+              ? "w-0"
+              : step === 2
+              ? "w-[33.33%]"
+              : "w-[66.66%]"
+          }
+        `}
+      />
+
+      {/* Steps */}
+      <div className="relative grid grid-cols-3">
+        {[1, 2, 3].map((s) => (
+          <div
+            key={s}
+            className="flex flex-col items-center min-w-0"
+          >
+            {/* Step Circle */}
             <div
               className={`
-                absolute top-5 h-2 rounded-full bg-blue-600 transition-all duration-500 ease-out
+                relative z-10
+                w-8 h-8
+                sm:w-9 sm:h-9
+                rounded-xl
+                flex items-center justify-center
+                font-semibold text-xs sm:text-sm
+                transition-all duration-300 ease-in-out
                 ${
-                  step === 1
-                    ? "w-0"
-                    : step === 2
-                    ? "left-[calc(16.67%+20px)] right-[50%]"
-                    : step >= 3
-                    ? "left-[calc(16.67%+20px)] right-[calc(16.67%+20px)]"
-                    : "w-0"
+                  step > s
+                    ? "bg-blue-600 text-white scale-95"
+                    : step === s
+                    ? "bg-blue-600 text-white ring-3 ring-blue-100 scale-105"
+                    : "bg-gray-200 text-gray-400"
                 }
               `}
-              style={step === 1 ? { left: 'calc(16.67% + 20px)' } : {}}
-            />
+            >
+              {step > s ? (
+                <Check className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+              ) : (
+                s
+              )}
+            </div>
 
-    {/* Steps */}
-    <div className="relative grid grid-cols-3">
-      {[1, 2, 3].map((s) => (
-        <div key={s} className="flex flex-col items-center">
-          {/* Step Circle */}
-          <div
-            className={`
-              relative z-10
-              w-10 h-10 sm:w-11 sm:h-11
-              rounded-2xl
-              flex items-center justify-center
-              font-bold text-sm
-              transition-all duration-500 ease-in-out
-              ${
-                step > s
-                  ? "bg-blue-600 text-white scale-95"
-                  : step === s
-                    ? "bg-blue-600 text-white ring-4 ring-blue-100 scale-105"
-                    : "bg-gray-200 text-gray-400"
-              }
-            `}
-          >
-            {step > s ? (
-              <Check className="w-5 h-5 animate-[pop_0.6s_ease-out]" />
-            ) : (
-              s
-            )}
+            {/* Label */}
+            <span
+              className={`
+                mt-1.5 sm:mt-2
+                text-[11px] sm:text-xs
+                font-medium
+                whitespace-nowrap
+                transition-colors
+                ${
+                  step >= s
+                    ? "text-gray-900"
+                    : "text-gray-400"
+                }
+              `}
+            >
+              {s === 1 && "Details"}
+              {s === 2 && "Worker"}
+              {s === 3 && "Payment"}
+            </span>
           </div>
-
-          {/* Label BELOW */}
-          <span
-            className={`
-              mt-2 text-xs sm:text-sm font-medium transition-colors
-              ${step >= s ? "text-gray-900" : "text-gray-400"}
-            `}
-          >
-            {s === 1 && "Details"}
-            {s === 2 && "Worker"}
-            {s === 3 && "Payment"}
-          </span>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   </div>
 )}
