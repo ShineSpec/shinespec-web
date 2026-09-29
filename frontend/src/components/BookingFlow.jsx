@@ -1438,837 +1438,814 @@ if (bookingDetails.serviceType === 'Laundry & Ironing' && !bookingDetails.laundr
   // Step 1: Booking Details
   const BookingDetailsStep = () => (
     <div className="flex-1 overflow-y-auto" ref={contentRef}>
-      {/* Main Content Container - Original layout preserved */}
-      <div className="max-w-7xl mx-auto p-8">
+      {/* Main Content Container */}
+      <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 xl:p-6">
         <div className="relative">
           {/* AI Service Matcher - Positioned on left side (Desktop only) */}
-          <div className="hidden lg:block absolute left-0 top-0 w-80 z-20">
+          <div className="hidden lg:block absolute left-0 top-0 w-64 xl:w-72 z-20">
             <AIServiceMatcher
               onMatch={(matchResult) => {
                 console.log('AI Match Result:', matchResult);
-                // Additional handling if needed
               }}
               bookingDetails={bookingDetails}
               setBookingDetails={setBookingDetails}
             />
-            {/* Service Tutorial Video */}
-{SERVICE_VIDEOS[bookingDetails.serviceType] && (
-  <div className="mb-6">
-    <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-purple-200 bg-white/50">
-        <div className="flex items-center gap-2">
-          <div>
-            <h4 className="font-semibold text-gray-900">How to Book {bookingDetails.serviceType}</h4>
-            <p className="text-xs text-gray-600">Watch our quick tutorial</p>
-          </div>
-        </div>
-        <button
-          onClick={() => setShowServiceVideo(!showServiceVideo)}
-          className="p-2 hover:bg-white rounded-lg transition-colors"
-        >
-          {showServiceVideo ? (
-            <ChevronDown className="w-5 h-5 text-gray-600" />
-          ) : (
-            <ChevronRight className="w-5 h-5 text-gray-600" />
-          )}
-        </button>
-      </div>
-
-      {/* Video */}
-      {showServiceVideo && (
-        <div className="relative" style={{ paddingBottom: '56.25%' }}>
-          <iframe
-            className="absolute top-0 left-0 w-full h-full"
-            src={`https://www.youtube.com/embed/${SERVICE_VIDEOS[bookingDetails.serviceType]}?rel=0&modestbranding=1`}
-            title={`How to book ${bookingDetails.serviceType}`}
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
-      )}
-    </div>
-  </div>
-)}
-          </div>
-          
-          
-          {/* Content wrapper with left margin for AI matcher */}
-          <div className="lg:pl-[22rem]">
-      {isGuest && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
-          <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm text-blue-900 font-semibold">Guest Checkout</p>
-            <p className="text-sm text-blue-800">
-              You're booking as a guest. You'll create your account or log in before payment.
-            </p>
-          </div>
-        </div>
-      )}
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Left Column - Form */}
-          <div className="space-y-6">
-            
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Add details about your booking</h2>
-              
-              {/* Service Description */}
-<div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-  <div className="flex gap-3">
-    <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-    <div>
-      <h3 className="font-semibold text-blue-900 mb-1">{bookingDetails.serviceType}</h3>
-      <p className="text-sm text-blue-800">
-        {SERVICE_DESCRIPTIONS[bookingDetails.serviceType] || 'Professional service tailored to your needs.'}
-      </p>
-    </div>
-  </div>
-</div>
-
-              {/* AI Service Matcher (Mobile/Tablet - visible on smaller screens, below service description) */}
-              <div className="lg:hidden mb-6">
-                <AIServiceMatcher
-                  onMatch={(matchResult) => {
-                    console.log('AI Match Result:', matchResult);
-                    // Additional handling if needed
-                  }}
-                  bookingDetails={bookingDetails}
-                  setBookingDetails={setBookingDetails}
-                />
-                {/* Service Tutorial Video */}
-{SERVICE_VIDEOS[bookingDetails.serviceType] && (
-  <div className="mb-6">
-    <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-purple-200 bg-white/50">
-        <div className="flex items-center gap-2">
-          <div>
-            <h4 className="font-semibold text-gray-900">How to Book {bookingDetails.serviceType}</h4>
-            <p className="text-xs text-gray-600">Watch our quick tutorial</p>
-          </div>
-        </div>
-        <button
-          onClick={() => setShowServiceVideo(!showServiceVideo)}
-          className="p-2 hover:bg-white rounded-lg transition-colors"
-        >
-          {showServiceVideo ? (
-            <ChevronDown className="w-5 h-5 text-gray-600" />
-          ) : (
-            <ChevronRight className="w-5 h-5 text-gray-600" />
-          )}
-        </button>
-      </div>
-
-      {/* Video */}
-      {showServiceVideo && (
-        <div className="relative" style={{ paddingBottom: '56.25%' }}>
-          <iframe
-            className="absolute top-0 left-0 w-full h-full"
-            src={`https://www.youtube.com/embed/${SERVICE_VIDEOS[bookingDetails.serviceType]}?rel=0&modestbranding=1`}
-            title={`How to book ${bookingDetails.serviceType}`}
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
-      )}
-    </div>
-  </div>
-)}
-              </div>
-              
-              
-              {/* Address Selection */}
-<div className="mb-6">
-  <label className="block text-sm font-semibold text-gray-700 mb-3">Service Address</label>
-  <div className="space-y-2">
-    {isGuest ? (
-      // For guests - show add address button only
-      <button
-        type="button"
-        onClick={() => setShowAddAddress(true)}
-        className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 text-gray-600"
-      >
-        <Plus className="w-5 h-5" />
-        Add Address
-      </button>
-    ) : (
-      // For logged-in users - show saved addresses
-      <>
-        {addresses.length > 0 ? (
-          addresses.map((addr) => (
-            
-<button
-  key={addr._id}
-  type="button"
-  onClick={() => {
-    console.log('🏠 User selected address:', addr.formattedAddress);
-    setSelectedAddress(addr);
-    // If on step 2, immediately refetch workers
-    if (step === 2 && !isGuest && token) {
-      console.log('🔄 Refetching workers for new address');
-      setTimeout(() => fetchWorkers(), 100); // Small delay to ensure state updates
-    }
-  }}
-  className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
-    selectedAddress?._id === addr._id
-      ? 'border-blue-600 bg-blue-50'
-      : 'border-gray-200 hover:border-blue-300'
-  }`}
->
-  <div className="flex items-center justify-between">
-    <div className="flex items-center gap-3">
-      <MapPin className={`w-5 h-5 ${selectedAddress?._id === addr._id ? 'text-blue-500' : 'text-gray-400'}`} />
-      <div>
-        <p className="font-medium text-gray-900">{addr.formattedAddress}</p>
-        {addr.unitNumber && <p className="text-sm text-gray-600">Unit: {addr.unitNumber}</p>}
-      </div>
-    </div>
-    {selectedAddress?._id === addr._id && <Check className="w-5 h-5 text-blue-500" />}
-  </div>
-</button>
-          ))
-        ) : (
-          <p className="text-sm text-gray-600 mb-2">No saved addresses yet</p>
-        )}
-        
-        <button
-          type="button"
-          onClick={() => setShowAddAddress(true)}
-          className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 text-gray-600"
-        >
-          <Plus className="w-5 h-5" />
-          Add New Address
-        </button>
-      </>
-    )}
-  </div>
-</div>
-
-
-              {/* Home Size */}
-              {bookingDetails.serviceType === 'Indoor Services' && (
-  <div className="mb-6">
-    <label className="block text-sm font-semibold text-gray-700 mb-3">How big is your home?</label>
-    <div className="relative">
-    <select
-  value={bookingDetails.homeSize}
-  onChange={(e) => {
-    if (contentRef.current) {
-      const scrollPos = contentRef.current.scrollTop;
-      sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
-    }
-    setBookingDetails({...bookingDetails, homeSize: e.target.value});
-  }}
-  onBlur={(e) => {
-    if (contentRef.current) {
-      const scrollPos = contentRef.current.scrollTop;
-      sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
-      requestAnimationFrame(() => {
-        if (contentRef.current) {
-          contentRef.current.scrollTop = scrollPos;
-        }
-      });
-    }
-  }}
-  className="w-full p-4 pr-10 border-2 border-gray-200 rounded-lg appearance-none focus:border-blue-500 focus:outline-none bg-white"
->
-  {homeSizes.map(size => (
-    <option key={size.value} value={size.value}>{size.label}</option>
-  ))}
-</select>
-      <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-    </div>
-  </div>
-)}
-
-              {/* Extra Tasks */}
+            {/* Service Tutorial Video - desktop sidebar, already lg+ only */}
+            {SERVICE_VIDEOS[bookingDetails.serviceType] && (
               <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Extra Tasks</label>
-                <div className="grid grid-cols-4 gap-3">
-                  {extraTasksOptions.map(task => (
-                    <button
-                    key={task.id}
-                    onClick={() => {
-                      if (contentRef.current) {
-                        const scrollPos = contentRef.current.scrollTop;
-                        sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
-                      }
-                      const tasks = bookingDetails.extraTasks.includes(task.id)
-                        ? bookingDetails.extraTasks.filter(t => t !== task.id)
-                        : [...bookingDetails.extraTasks, task.id];
-                      setBookingDetails({...bookingDetails, extraTasks: tasks});
-                    }}
-                    className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
-                      bookingDetails.extraTasks.includes(task.id)
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-blue-300'
-                    }`}
-                  >
-                      <img 
-                        src={task.icon} 
-                        alt={task.label}
-                        className="w-10 h-10 object-contain"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextElementSibling.style.display = 'flex';
-                        }}
-                      />
-                      <div className="w-10 h-10 bg-gray-100 rounded-lg hidden items-center justify-center text-xs text-gray-400">
-                        {task.label.substring(0, 2)}
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl overflow-hidden">
+                  <div className="flex items-center justify-between p-4 border-b border-purple-200 bg-white/50">
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <h4 className="font-semibold text-gray-900">How to Book {bookingDetails.serviceType}</h4>
+                        <p className="text-xs text-gray-600">Watch our quick tutorial</p>
                       </div>
-                      <span className="text-xs text-center font-medium">{task.label}</span>
+                    </div>
+                    <button
+                      onClick={() => setShowServiceVideo(!showServiceVideo)}
+                      className="p-2 hover:bg-white rounded-lg transition-colors"
+                    >
+                      {showServiceVideo ? (
+                        <ChevronDown className="w-5 h-5 text-gray-600" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-gray-600" />
+                      )}
                     </button>
-                  ))}
-                </div>
-              </div>
+                  </div>
 
-              {/* Hours - With Service-Specific Constraints */}
-              {bookingDetails.serviceType !== 'Laundry & Ironing' && bookingDetails.serviceType !== 'Event Cleaning' && (
-  <div className="mb-6" ref={hoursRef}>
-    <label className="block text-sm font-semibold text-gray-700 mb-3">How Long?</label>
-    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
-      <span className="font-medium">Hours</span>
-      <div className="flex items-center gap-4">
-      <button
-  type="button"
-  onClick={(e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (contentRef.current) {
-      const scrollPos = contentRef.current.scrollTop;
-      sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
-    }
-    const minHours = bookingDetails.serviceType === 'Outdoor Services' ? 3.5 : 2;
-    const newHours = Math.max(minHours, bookingDetails.hoursNeeded - 0.5);
-    setBookingDetails({...bookingDetails, hoursNeeded: parseFloat(newHours.toFixed(1))});
-  }}
-  className="w-10 h-10 rounded-full border-2 border-blue-500 text-blue-500 hover:bg-blue-50 transition-all font-bold text-xl"
->
-  -
-</button>
-<span className="text-2xl font-bold text-gray-900 w-16 text-center">
-  {bookingDetails.hoursNeeded}
-</span>
-<button
-  type="button"
-  onClick={(e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (contentRef.current) {
-      const scrollPos = contentRef.current.scrollTop;
-      sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
-    }
-    const newHours = Math.min(8, bookingDetails.hoursNeeded + 0.5);
-    setBookingDetails({...bookingDetails, hoursNeeded: parseFloat(newHours.toFixed(1))});
-  }}
-  className="w-10 h-10 rounded-full border-2 border-blue-500 text-blue-500 hover:bg-blue-50 transition-all font-bold text-xl"
->
-  +
-</button>
-      </div>
-    </div>
-  </div>
-)}
-              
-              
-             {/* Event Cleaning Configuration - MODERN CARD-BASED UI */}
-{bookingDetails.serviceType === 'Event Cleaning' && (
-  <div className="mb-6 space-y-6">
-    
-    {/* Event Size Selection - Card Grid */}
-    <div>
-      <label className="block text-sm font-semibold text-gray-700 mb-4">Select Event Size</label>
-      <div className="grid grid-cols-2 gap-3">
-        {[
-          { value: 'small', label: 'Small', guests: '≤50 guests', color: 'blue' },
-          { value: 'medium', label: 'Medium', guests: '51–150 guests', color: 'purple' },
-          { value: 'large', label: 'Large', guests: '151–300 guests', color: 'pink' },
-          { value: 'extraLarge', label: 'Extra Large', guests: '300+ guests', color: 'red' }
-        ].map(size => (
-          <button
-  key={size.value}
-  type="button"
-  onClick={() => {
-    if (contentRef.current) {
-      const scrollPos = contentRef.current.scrollTop;
-      sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
-    }
-    setBookingDetails({
-      ...bookingDetails,
-      eventSize: size.value,
-      eventPackage: size.value,
-      eventGuestCount: size.guests
-    });
-  }}
-  className={`p-4 rounded-xl border-2 transition-all transform hover:scale-105 ${
-    bookingDetails.eventSize === size.value
-      ? `border-${size.color}-500 bg-${size.color}-50 shadow-lg`
-      : 'border-gray-200 hover:border-gray-300 bg-white'
-  }`}
->
-            <p className="font-bold text-gray-900">{size.label}</p>
-            <p className="text-xs text-gray-600 mt-1">{size.guests}</p>
-          </button>
-        ))}
-      </div>
-    </div>
-
-    {/* Guest Count Display - Info Card */}
-    <div>
-      <label className="block text-sm font-semibold text-gray-700 mb-3">Expected Guest Count</label>
-      <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white text-xl">
-            👥
-          </div>
-          <div>
-            <p className="text-sm text-blue-600 font-medium">Expected Guests:</p>
-            <p className="text-2xl font-bold text-blue-900">
-              {bookingDetails.eventSize === 'small' && '≤50 guests'}
-              {bookingDetails.eventSize === 'medium' && '51–150 guests'}
-              {bookingDetails.eventSize === 'large' && '151–300 guests'}
-              {bookingDetails.eventSize === 'extraLarge' && '300+ guests'}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* Cleaning Scope Selection - Modern Cards with Icons */}
-    <div>
-      <label className="block text-sm font-semibold text-gray-700 mb-4">Cleaning Scope</label>
-      <p className="text-xs text-gray-600 mb-4">Choose the level of cleaning service you need</p>
-      <div className="space-y-3">
-        {[
-          { 
-            value: 'base', 
-            label: 'Base Service', 
-            desc: 'Venue cleaning & basic setup',
-            color: 'blue'
-          },
-          { 
-            value: 'preSetup', 
-            label: 'Pre-Event Setup', 
-            desc: 'Base + Pre-event preparation & decoration cleaning',
-            color: 'purple'
-          },
-          { 
-            value: 'duringSupport', 
-            label: 'During Event Support', 
-            desc: 'Base + Ongoing cleaning & tidying during the event',
-            color: 'pink'
-          },
-          { 
-            value: 'postDeepClean', 
-            label: 'Post-Event Deep Clean', 
-            desc: 'Base + Complete post-event cleanup & restoration',
-            color: 'green'
-          },
-          { 
-            value: 'fullPackage', 
-            label: 'Full Package (Recommended)', 
-            desc: 'Everything - Pre, During, and Post event services',
-            color: 'yellow'
-          }
-        ].map(scope => (
-          <button
-  key={scope.value}
-  type="button"
-  onClick={() => {
-    if (contentRef.current) {
-      const scrollPos = contentRef.current.scrollTop;
-      sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
-    }
-    setBookingDetails({
-      ...bookingDetails,
-      eventCleaningScope: scope.value
-    });
-  }}
-  className={`w-full p-4 rounded-xl border-2 transition-all text-left transform hover:scale-102 ${
-    bookingDetails.eventCleaningScope === scope.value
-      ? `border-${scope.color}-500 bg-${scope.color}-50 shadow-md`
-      : 'border-gray-200 hover:border-gray-300 bg-white hover:shadow-sm'
-  }`}
->
-            <div className="flex items-start gap-3">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="font-bold text-gray-900">{scope.label}</p>
-                  {scope.value === 'fullPackage' && (
-                    <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded-full text-xs font-semibold">
-                      Popular
-                    </span>
+                  {showServiceVideo && (
+                    <div className="relative" style={{ paddingBottom: '56.25%' }}>
+                      <iframe
+                        className="absolute top-0 left-0 w-full h-full"
+                        src={`https://www.youtube.com/embed/${SERVICE_VIDEOS[bookingDetails.serviceType]}?rel=0&modestbranding=1`}
+                        title={`How to book ${bookingDetails.serviceType}`}
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
                   )}
                 </div>
-                <p className="text-sm text-gray-600 mt-1">{scope.desc}</p>
               </div>
-              {bookingDetails.eventCleaningScope === scope.value && (
-                <div className="text-blue-500 mt-1">
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                </div>
-              )}
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  </div>
-)}
-
-              {/* Laundry & Ironing Bundle Selection */}
-{bookingDetails.serviceType === 'Laundry & Ironing' && (
-  <div className="mb-6">
-    <label className="block text-sm font-semibold text-gray-700 mb-3">Choose Your Bundle</label>
-    <div className="space-y-2">
-      {[
-        { key: 'small', label: 'Small Bundle', desc: '1–2 wash loads + 1 ironing load (10–15 items)', time: '3 hrs', price: 350 },
-        { key: 'family', label: 'Family Bundle', desc: '3–4 wash loads + 2 ironing loads (16–30 items)', time: '4 hrs', price: 420 },
-        { key: 'busyWeek', label: 'Busy Week Bundle', desc: '5–6 wash loads + 3 ironing loads (31–45 items)', time: '5 hrs', price: 490 },
-        { key: 'bigWash', label: 'Big Wash Bundle', desc: '7–8 wash loads + 4 ironing loads (46–60 items)', time: '6 hrs', price: 560 },
-        { key: 'mega', label: 'Mega Wash Bundle', desc: '9–10 wash loads + 5 ironing loads (61–75 items)', time: '7 hrs', price: 630 },
-        { key: 'unlimited', label: 'Unlimited Bundle', desc: '10+ wash loads + 6 ironing loads (75+ items)', time: '8 hrs', price: 700 }
-      ].map(bundle => (
-        <button
-  key={bundle.key}
-  type="button"
-  onClick={() => {
-    if (contentRef.current) {
-      const scrollPos = contentRef.current.scrollTop;
-      sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
-    }
-    setBookingDetails({
-      ...bookingDetails,
-      laundryBundle: bundle.key,
-      hoursNeeded: PRICING_STRUCTURE['Laundry & Ironing'][bundle.key].hours
-    });
-  }}
-  className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
-    bookingDetails.laundryBundle === bundle.key
-      ? 'border-blue-500 bg-blue-50'
-      : 'border-gray-200 hover:border-blue-300'
-  }`}
->
-          <div className="flex justify-between items-start mb-1">
-            <h4 className="font-semibold text-gray-900">{bundle.label}</h4>
-            <span className="text-lg font-bold text-blue-600">R{bundle.price}</span>
+            )}
           </div>
-          <p className="text-sm text-gray-600 mb-2">{bundle.desc}</p>
-          <p className="text-xs text-gray-500">⏱ {bundle.time}</p>
-        </button>
-      ))}
-    </div>
-  </div>
-)}
 
-              {/* Date & Time */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-  <label className="block text-sm font-semibold text-gray-700 mb-3">
-    Select start date:
-  </label>
-  <input
-    type="date"
-    placeholder="Select date"
-    value={bookingDetails.scheduledDate}
-    onChange={(e) => {
-      if (!contentRef.current) return;
-      const scrollPos = contentRef.current.scrollTop;
-      sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
-      setBookingDetails({ ...bookingDetails, scheduledDate: e.target.value });
-    }}
-    onBlur={(e) => {
-      // Prevent scroll on blur
-      if (contentRef.current) {
-        const scrollPos = contentRef.current.scrollTop;
-        sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
-        requestAnimationFrame(() => {
-          if (contentRef.current) {
-            contentRef.current.scrollTop = scrollPos;
-          }
-        });
-      }
-    }}
-    className="w-full p-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-    min={new Date().toISOString().split('T')[0]}
-  />
-</div>
+          {/* Content wrapper with left margin for AI matcher */}
+          <div className="lg:pl-72 xl:pl-80">
+            {isGuest && (
+              <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
+                <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-blue-900 font-semibold">Guest Checkout</p>
+                  <p className="text-sm text-blue-800">
+                    You're booking as a guest. You'll create your account or log in before payment.
+                  </p>
+                </div>
+              </div>
+            )}
+            <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
+              {/* Left Column - Form */}
+              <div className="space-y-6">
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Select start time:</label>
-                  <div className="relative">
-                    <select
-                      value={bookingDetails.scheduledTime}
-                      onChange={(e) => {
-                        if (!contentRef.current) return;
-                        const scrollPos = contentRef.current.scrollTop;
-                        sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
-                        setBookingDetails({...bookingDetails, scheduledTime: e.target.value});
-                      }}
-                      onBlur={(e) => {
-                        // Prevent scroll on blur
-                        if (contentRef.current) {
-                          const scrollPos = contentRef.current.scrollTop;
-                          sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
-                          requestAnimationFrame(() => {
-                            if (contentRef.current) {
-                              contentRef.current.scrollTop = scrollPos;
-                            }
-                          });
-                        }
-                      }}
-                      className="w-full p-4 pr-10 border-2 border-gray-200 rounded-lg appearance-none focus:border-blue-500 focus:outline-none bg-white"
-                    >
-                      <option value="">Select time</option>
-                      {timeSlots.map(slot => (
-                        <option key={slot} value={slot}>{slot}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                  </div>
-                </div>
-              </div>
+                  <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4 lg:mb-6">Add details about your booking</h2>
 
-              {bookingDetails.serviceType === 'Office Cleaning' && (
-  <div className="mb-6">
-    <label className="block text-sm font-semibold text-gray-700 mb-3">Special Requests</label>
-    <p className="text-xs text-gray-600 mb-3">Select any additional services you need for your office cleaning</p>
-    
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex gap-3">
-      <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-      <div>
-        <p className="text-sm font-semibold text-blue-900 mb-1">Additional Charges Apply</p>
-        <p className="text-xs text-blue-800">
-          Special requests may incur additional charges. Our team will review your booking and provide you with a final quote before any work begins. You'll be contacted to confirm the additional cost.
-        </p>
-      </div>
-    </div>
-    <div className="space-y-3">
-      <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 cursor-pointer transition-all">
-      <input
-  type="checkbox"
-  checked={bookingDetails.officeSpecialRequests?.extraProviders || false}
-  onChange={(e) => {
-    if (contentRef.current) {
-      const scrollPos = contentRef.current.scrollTop;
-      sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
-    }
-    setBookingDetails({
-      ...bookingDetails,
-      officeSpecialRequests: {
-        ...bookingDetails.officeSpecialRequests,
-        extraProviders: e.target.checked
-      }
-    });
-  }}
-  className="w-5 h-5 text-blue-500 rounded"
-/>
-        <div>
-          <p className="font-medium text-gray-900">Additional Service Providers</p>
-          <p className="text-xs text-gray-600">Send extra staff members to complete the job faster</p>
-        </div>
-      </label>
-
-      <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 cursor-pointer transition-all">
-        <input
-          type="checkbox"
-          checked={bookingDetails.officeSpecialRequests?.highRiskAreas || false}
-          onChange={(e) => {
-            if (contentRef.current) {
-              const scrollPos = contentRef.current.scrollTop;
-              sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
-            }
-            setBookingDetails({
-              ...bookingDetails,
-              officeSpecialRequests: {
-                ...bookingDetails.officeSpecialRequests,
-                highRiskAreas: e.target.checked
-              }
-            });
-          }}
-          className="w-5 h-5 text-blue-500 rounded"
-        />
-        <div>
-          <p className="font-medium text-gray-900">High-Risk Areas</p>
-          <p className="text-xs text-gray-600">Special attention to sensitive electronics and valuable items</p>
-        </div>
-      </label>
-
-      <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 cursor-pointer transition-all">
-        <input
-          type="checkbox"
-          checked={bookingDetails.officeSpecialRequests?.earlyMorning || false}
-          onChange={(e) => {
-            if (contentRef.current) {
-              const scrollPos = contentRef.current.scrollTop;
-              sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
-            }
-            setBookingDetails({
-              ...bookingDetails,
-              officeSpecialRequests: {
-                ...bookingDetails.officeSpecialRequests,
-                earlyMorning: e.target.checked
-              }
-            });
-          }}
-          className="w-5 h-5 text-blue-500 rounded"
-        />
-        <div>
-          <p className="font-medium text-gray-900">Early Morning Service</p>
-          <p className="text-xs text-gray-600">Before office hours (before 08:00 AM)</p>
-        </div>
-      </label>
-
-      <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 cursor-pointer transition-all">
-        <input
-          type="checkbox"
-          checked={bookingDetails.officeSpecialRequests?.afterHours || false}
-          onChange={(e) => {
-            if (contentRef.current) {
-              const scrollPos = contentRef.current.scrollTop;
-              sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
-            }
-            setBookingDetails({
-              ...bookingDetails,
-              officeSpecialRequests: {
-                ...bookingDetails.officeSpecialRequests,
-                afterHours: e.target.checked
-              }
-            });
-          }}
-          className="w-5 h-5 text-blue-500 rounded"
-        />
-        <div>
-          <p className="font-medium text-gray-900">After Hours Service</p>
-          <p className="text-xs text-gray-600">After office hours (after 18:00 PM)</p>
-        </div>
-      </label>
-
-      <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 cursor-pointer transition-all">
-        <input
-          type="checkbox"
-          checked={bookingDetails.officeSpecialRequests?.biohazard || false}
-          onChange={(e) => {
-            if (contentRef.current) {
-              const scrollPos = contentRef.current.scrollTop;
-              sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
-            }
-            setBookingDetails({
-              ...bookingDetails,
-              officeSpecialRequests: {
-                ...bookingDetails.officeSpecialRequests,
-                biohazard: e.target.checked
-              }
-            });
-          }}
-          className="w-5 h-5 text-blue-500 rounded"
-        />
-        <div>
-          <p className="font-medium text-gray-900">Biohazard Cleaning</p>
-          <p className="text-xs text-gray-600">Specialized cleaning for contaminated areas</p>
-        </div>
-      </label>
-    </div>
-
-    {/* Custom Request Text Area */}
-    <div className="mt-4">
-      <label className="block text-sm font-semibold text-gray-700 mb-2">Custom Request</label>
-      <textarea
-key="custom-request"
-defaultValue={bookingDetails.customRequest}
-placeholder="Custom request"
-className="w-full min-h-[120px] rounded-lg bg-white p-4 outline-none border-2 border-gray-300 rounded-lg hover:border-blue-500"
-onChange={e => (customRequestRef.current = e.target.value)}
-onBlur={commitBookingText}
-onFocus={() => (document.body.style.overflow = "hidden")}
-onBlurCapture={() => (document.body.style.overflow = "")}
-/>
-    </div>
-  </div>
-)}
-
-              {/* Notes */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Add specific instructions</label>
-                <textarea
-key="notes"
-defaultValue={bookingDetails.notes}
-placeholder="Additional notes"
-className="w-full min-h-[120px] rounded-lg bg-white p-4 outline-none border-2 border-gray-300 rounded-lg hover:border-blue-500"
-onChange={e => (notesRef.current = e.target.value)}
-onBlur={commitBookingText}
-onFocus={() => (document.body.style.overflow = "hidden")}
-onBlurCapture={() => (document.body.style.overflow = "")}
-/>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Summary */}
-          <div>
-            <div className="sticky top-8">
-              <div className="bg-white border-2 border-gray-200 rounded-lg p-6 mb-4">
-                <h3 className="font-bold text-lg mb-4">Booking Details</h3>
-                
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-start gap-3 pb-3 border-b border-gray-100">
-                    <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-xs text-gray-600 mb-1">Where:</p>
-                      <p className="font-medium text-sm">{selectedAddress?.formattedAddress || 'No address selected'}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3 pb-3 border-b border-gray-100">
-                    <Home className="w-5 h-5 text-gray-400 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-xs text-gray-600 mb-1">What:</p>
-                      <p className="font-medium text-sm">{bookingDetails.serviceType}</p>
-                    </div>
-                  </div>
-
-                  {bookingDetails.scheduledDate && bookingDetails.scheduledTime && (
-                    <div className="flex items-start gap-3 pb-3 border-b border-gray-100">
-                      <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="text-xs text-gray-600 mb-1">When:</p>
-                        <p className="font-medium text-sm">
-                          {new Date(bookingDetails.scheduledDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} @ {bookingDetails.scheduledTime}
+                  {/* Service Description */}
+                  <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex gap-3">
+                      <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h3 className="font-semibold text-blue-900 mb-1">{bookingDetails.serviceType}</h3>
+                        <p className="text-sm text-blue-800">
+                          {SERVICE_DESCRIPTIONS[bookingDetails.serviceType] || 'Professional service tailored to your needs.'}
                         </p>
                       </div>
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                <div className="bg-blue-900 text-white p-4 rounded-lg flex justify-between items-center">
-                  <div>
-                    <p className="text-sm opacity-80">Total hours</p>
-                    <p className="text-2xl font-bold">{bookingDetails.hoursNeeded}</p>
+                  {/* AI Service Matcher (Mobile/Tablet - visible below lg, below service description) */}
+                  <div className="lg:hidden mb-6">
+                    <AIServiceMatcher
+                      onMatch={(matchResult) => {
+                        console.log('AI Match Result:', matchResult);
+                      }}
+                      bookingDetails={bookingDetails}
+                      setBookingDetails={setBookingDetails}
+                    />
+                    {/* Service Tutorial Video - hidden on small phone screens, shown from sm: (≥640px) up to lg */}
+                    {SERVICE_VIDEOS[bookingDetails.serviceType] && (
+                      <div className="hidden sm:block mb-6">
+                        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl overflow-hidden">
+                          <div className="flex items-center justify-between p-4 border-b border-purple-200 bg-white/50">
+                            <div className="flex items-center gap-2">
+                              <div>
+                                <h4 className="font-semibold text-gray-900">How to Book {bookingDetails.serviceType}</h4>
+                                <p className="text-xs text-gray-600">Watch our quick tutorial</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => setShowServiceVideo(!showServiceVideo)}
+                              className="p-2 hover:bg-white rounded-lg transition-colors"
+                            >
+                              {showServiceVideo ? (
+                                <ChevronDown className="w-5 h-5 text-gray-600" />
+                              ) : (
+                                <ChevronRight className="w-5 h-5 text-gray-600" />
+                              )}
+                            </button>
+                          </div>
+
+                          {showServiceVideo && (
+                            <div className="relative" style={{ paddingBottom: '56.25%' }}>
+                              <iframe
+                                className="absolute top-0 left-0 w-full h-full"
+                                src={`https://www.youtube.com/embed/${SERVICE_VIDEOS[bookingDetails.serviceType]}?rel=0&modestbranding=1`}
+                                title={`How to book ${bookingDetails.serviceType}`}
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm opacity-80">Est. Price</p>
-                    <p className="text-2xl font-bold">R{calculateTotal()}</p>
+
+
+                  {/* Address Selection */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">Service Address</label>
+                    <div className="space-y-2">
+                      {isGuest ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowAddAddress(true)}
+                          className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 text-gray-600"
+                        >
+                          <Plus className="w-5 h-5" />
+                          Add Address
+                        </button>
+                      ) : (
+                        <>
+                          {addresses.length > 0 ? (
+                            addresses.map((addr) => (
+                              <button
+                                key={addr._id}
+                                type="button"
+                                onClick={() => {
+                                  console.log('🏠 User selected address:', addr.formattedAddress);
+                                  setSelectedAddress(addr);
+                                  if (step === 2 && !isGuest && token) {
+                                    console.log('🔄 Refetching workers for new address');
+                                    setTimeout(() => fetchWorkers(), 100);
+                                  }
+                                }}
+                                className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                                  selectedAddress?._id === addr._id
+                                    ? 'border-blue-600 bg-blue-50'
+                                    : 'border-gray-200 hover:border-blue-300'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <MapPin className={`w-5 h-5 ${selectedAddress?._id === addr._id ? 'text-blue-500' : 'text-gray-400'}`} />
+                                    <div>
+                                      <p className="font-medium text-gray-900">{addr.formattedAddress}</p>
+                                      {addr.unitNumber && <p className="text-sm text-gray-600">Unit: {addr.unitNumber}</p>}
+                                    </div>
+                                  </div>
+                                  {selectedAddress?._id === addr._id && <Check className="w-5 h-5 text-blue-500" />}
+                                </div>
+                              </button>
+                            ))
+                          ) : (
+                            <p className="text-sm text-gray-600 mb-2">No saved addresses yet</p>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => setShowAddAddress(true)}
+                            className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 text-gray-600"
+                          >
+                            <Plus className="w-5 h-5" />
+                            Add New Address
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+
+                  {/* Home Size */}
+                  {bookingDetails.serviceType === 'Indoor Services' && (
+                    <div className="mb-6">
+                      <label className="block text-sm font-semibold text-gray-700 mb-3">How big is your home?</label>
+                      <div className="relative">
+                        <select
+                          value={bookingDetails.homeSize}
+                          onChange={(e) => {
+                            if (contentRef.current) {
+                              const scrollPos = contentRef.current.scrollTop;
+                              sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
+                            }
+                            setBookingDetails({...bookingDetails, homeSize: e.target.value});
+                          }}
+                          onBlur={(e) => {
+                            if (contentRef.current) {
+                              const scrollPos = contentRef.current.scrollTop;
+                              sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
+                              requestAnimationFrame(() => {
+                                if (contentRef.current) {
+                                  contentRef.current.scrollTop = scrollPos;
+                                }
+                              });
+                            }
+                          }}
+                          className="w-full p-3 lg:p-4 pr-10 border-2 border-gray-200 rounded-lg appearance-none focus:border-blue-500 focus:outline-none bg-white"
+                        >
+                          {homeSizes.map(size => (
+                            <option key={size.value} value={size.value}>{size.label}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Extra Tasks */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">Extra Tasks</label>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
+                      {extraTasksOptions.map(task => (
+                        <button
+                          key={task.id}
+                          onClick={() => {
+                            if (contentRef.current) {
+                              const scrollPos = contentRef.current.scrollTop;
+                              sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
+                            }
+                            const tasks = bookingDetails.extraTasks.includes(task.id)
+                              ? bookingDetails.extraTasks.filter(t => t !== task.id)
+                              : [...bookingDetails.extraTasks, task.id];
+                            setBookingDetails({...bookingDetails, extraTasks: tasks});
+                          }}
+                          className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
+                            bookingDetails.extraTasks.includes(task.id)
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-200 hover:border-blue-300'
+                          }`}
+                        >
+                          <img
+                            src={task.icon}
+                            alt={task.label}
+                            className="w-10 h-10 object-contain"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextElementSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div className="w-10 h-10 bg-gray-100 rounded-lg hidden items-center justify-center text-xs text-gray-400">
+                            {task.label.substring(0, 2)}
+                          </div>
+                          <span className="text-xs text-center font-medium">{task.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Hours - With Service-Specific Constraints */}
+                  {bookingDetails.serviceType !== 'Laundry & Ironing' && bookingDetails.serviceType !== 'Event Cleaning' && (
+                    <div className="mb-6" ref={hoursRef}>
+                      <label className="block text-sm font-semibold text-gray-700 mb-3">How Long?</label>
+                      <div className="flex items-center justify-between p-3 lg:p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                        <span className="font-medium">Hours</span>
+                        <div className="flex items-center gap-4">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (contentRef.current) {
+                                const scrollPos = contentRef.current.scrollTop;
+                                sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
+                              }
+                              const minHours = bookingDetails.serviceType === 'Outdoor Services' ? 3.5 : 2;
+                              const newHours = Math.max(minHours, bookingDetails.hoursNeeded - 0.5);
+                              setBookingDetails({...bookingDetails, hoursNeeded: parseFloat(newHours.toFixed(1))});
+                            }}
+                            className="w-10 h-10 rounded-full border-2 border-blue-500 text-blue-500 hover:bg-blue-50 transition-all font-bold text-xl"
+                          >
+                            -
+                          </button>
+                          <span className="text-2xl font-bold text-gray-900 w-16 text-center">
+                            {bookingDetails.hoursNeeded}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (contentRef.current) {
+                                const scrollPos = contentRef.current.scrollTop;
+                                sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
+                              }
+                              const newHours = Math.min(8, bookingDetails.hoursNeeded + 0.5);
+                              setBookingDetails({...bookingDetails, hoursNeeded: parseFloat(newHours.toFixed(1))});
+                            }}
+                            className="w-10 h-10 rounded-full border-2 border-blue-500 text-blue-500 hover:bg-blue-50 transition-all font-bold text-xl"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+
+                  {/* Event Cleaning Configuration */}
+                  {bookingDetails.serviceType === 'Event Cleaning' && (
+                    <div className="mb-6 space-y-6">
+
+                      {/* Event Size Selection */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-4">Select Event Size</label>
+                        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+                          {[
+                            { value: 'small', label: 'Small', guests: '≤50 guests', color: 'blue' },
+                            { value: 'medium', label: 'Medium', guests: '51–150 guests', color: 'purple' },
+                            { value: 'large', label: 'Large', guests: '151–300 guests', color: 'pink' },
+                            { value: 'extraLarge', label: 'Extra Large', guests: '300+ guests', color: 'red' }
+                          ].map(size => (
+                            <button
+                              key={size.value}
+                              type="button"
+                              onClick={() => {
+                                if (contentRef.current) {
+                                  const scrollPos = contentRef.current.scrollTop;
+                                  sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
+                                }
+                                setBookingDetails({
+                                  ...bookingDetails,
+                                  eventSize: size.value,
+                                  eventPackage: size.value,
+                                  eventGuestCount: size.guests
+                                });
+                              }}
+                              className={`p-4 rounded-xl border-2 transition-all transform hover:scale-105 ${
+                                bookingDetails.eventSize === size.value
+                                  ? `border-${size.color}-500 bg-${size.color}-50 shadow-lg`
+                                  : 'border-gray-200 hover:border-gray-300 bg-white'
+                              }`}
+                            >
+                              <p className="font-bold text-gray-900">{size.label}</p>
+                              <p className="text-xs text-gray-600 mt-1">{size.guests}</p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Guest Count Display */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-3">Expected Guest Count</label>
+                        <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white text-xl">
+                              👥
+                            </div>
+                            <div>
+                              <p className="text-sm text-blue-600 font-medium">Expected Guests:</p>
+                              <p className="text-2xl font-bold text-blue-900">
+                                {bookingDetails.eventSize === 'small' && '≤50 guests'}
+                                {bookingDetails.eventSize === 'medium' && '51–150 guests'}
+                                {bookingDetails.eventSize === 'large' && '151–300 guests'}
+                                {bookingDetails.eventSize === 'extraLarge' && '300+ guests'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Cleaning Scope Selection */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-4">Cleaning Scope</label>
+                        <p className="text-xs text-gray-600 mb-4">Choose the level of cleaning service you need</p>
+                        <div className="space-y-3">
+                          {[
+                            {
+                              value: 'base',
+                              label: 'Base Service',
+                              desc: 'Venue cleaning & basic setup',
+                              color: 'blue'
+                            },
+                            {
+                              value: 'preSetup',
+                              label: 'Pre-Event Setup',
+                              desc: 'Base + Pre-event preparation & decoration cleaning',
+                              color: 'purple'
+                            },
+                            {
+                              value: 'duringSupport',
+                              label: 'During Event Support',
+                              desc: 'Base + Ongoing cleaning & tidying during the event',
+                              color: 'pink'
+                            },
+                            {
+                              value: 'postDeepClean',
+                              label: 'Post-Event Deep Clean',
+                              desc: 'Base + Complete post-event cleanup & restoration',
+                              color: 'green'
+                            },
+                            {
+                              value: 'fullPackage',
+                              label: 'Full Package (Recommended)',
+                              desc: 'Everything - Pre, During, and Post event services',
+                              color: 'yellow'
+                            }
+                          ].map(scope => (
+                            <button
+                              key={scope.value}
+                              type="button"
+                              onClick={() => {
+                                if (contentRef.current) {
+                                  const scrollPos = contentRef.current.scrollTop;
+                                  sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
+                                }
+                                setBookingDetails({
+                                  ...bookingDetails,
+                                  eventCleaningScope: scope.value
+                                });
+                              }}
+                              className={`w-full p-4 rounded-xl border-2 transition-all text-left transform hover:scale-102 ${
+                                bookingDetails.eventCleaningScope === scope.value
+                                  ? `border-${scope.color}-500 bg-${scope.color}-50 shadow-md`
+                                  : 'border-gray-200 hover:border-gray-300 bg-white hover:shadow-sm'
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-bold text-gray-900">{scope.label}</p>
+                                    {scope.value === 'fullPackage' && (
+                                      <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded-full text-xs font-semibold">
+                                        Popular
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-gray-600 mt-1">{scope.desc}</p>
+                                </div>
+                                {bookingDetails.eventCleaningScope === scope.value && (
+                                  <div className="text-blue-500 mt-1">
+                                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                  </div>
+                                )}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Laundry & Ironing Bundle Selection */}
+                  {bookingDetails.serviceType === 'Laundry & Ironing' && (
+                    <div className="mb-6">
+                      <label className="block text-sm font-semibold text-gray-700 mb-3">Choose Your Bundle</label>
+                      <div className="space-y-2">
+                        {[
+                          { key: 'small', label: 'Small Bundle', desc: '1–2 wash loads + 1 ironing load (10–15 items)', time: '3 hrs', price: 350 },
+                          { key: 'family', label: 'Family Bundle', desc: '3–4 wash loads + 2 ironing loads (16–30 items)', time: '4 hrs', price: 420 },
+                          { key: 'busyWeek', label: 'Busy Week Bundle', desc: '5–6 wash loads + 3 ironing loads (31–45 items)', time: '5 hrs', price: 490 },
+                          { key: 'bigWash', label: 'Big Wash Bundle', desc: '7–8 wash loads + 4 ironing loads (46–60 items)', time: '6 hrs', price: 560 },
+                          { key: 'mega', label: 'Mega Wash Bundle', desc: '9–10 wash loads + 5 ironing loads (61–75 items)', time: '7 hrs', price: 630 },
+                          { key: 'unlimited', label: 'Unlimited Bundle', desc: '10+ wash loads + 6 ironing loads (75+ items)', time: '8 hrs', price: 700 }
+                        ].map(bundle => (
+                          <button
+                            key={bundle.key}
+                            type="button"
+                            onClick={() => {
+                              if (contentRef.current) {
+                                const scrollPos = contentRef.current.scrollTop;
+                                sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
+                              }
+                              setBookingDetails({
+                                ...bookingDetails,
+                                laundryBundle: bundle.key,
+                                hoursNeeded: PRICING_STRUCTURE['Laundry & Ironing'][bundle.key].hours
+                              });
+                            }}
+                            className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                              bookingDetails.laundryBundle === bundle.key
+                                ? 'border-blue-500 bg-blue-50'
+                                : 'border-gray-200 hover:border-blue-300'
+                            }`}
+                          >
+                            <div className="flex justify-between items-start mb-1">
+                              <h4 className="font-semibold text-gray-900">{bundle.label}</h4>
+                              <span className="text-lg font-bold text-blue-600">R{bundle.price}</span>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-2">{bundle.desc}</p>
+                            <p className="text-xs text-gray-500">⏱ {bundle.time}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Date & Time */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-3">
+                        Select start date:
+                      </label>
+                      <input
+                        type="date"
+                        placeholder="Select date"
+                        value={bookingDetails.scheduledDate}
+                        onChange={(e) => {
+                          if (!contentRef.current) return;
+                          const scrollPos = contentRef.current.scrollTop;
+                          sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
+                          setBookingDetails({ ...bookingDetails, scheduledDate: e.target.value });
+                        }}
+                        onBlur={(e) => {
+                          if (contentRef.current) {
+                            const scrollPos = contentRef.current.scrollTop;
+                            sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
+                            requestAnimationFrame(() => {
+                              if (contentRef.current) {
+                                contentRef.current.scrollTop = scrollPos;
+                              }
+                            });
+                          }
+                        }}
+                        className="w-full p-3 lg:p-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+                        min={new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-3">Select start time:</label>
+                      <div className="relative">
+                        <select
+                          value={bookingDetails.scheduledTime}
+                          onChange={(e) => {
+                            if (!contentRef.current) return;
+                            const scrollPos = contentRef.current.scrollTop;
+                            sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
+                            setBookingDetails({...bookingDetails, scheduledTime: e.target.value});
+                          }}
+                          onBlur={(e) => {
+                            if (contentRef.current) {
+                              const scrollPos = contentRef.current.scrollTop;
+                              sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
+                              requestAnimationFrame(() => {
+                                if (contentRef.current) {
+                                  contentRef.current.scrollTop = scrollPos;
+                                }
+                              });
+                            }
+                          }}
+                          className="w-full p-3 lg:p-4 pr-10 border-2 border-gray-200 rounded-lg appearance-none focus:border-blue-500 focus:outline-none bg-white"
+                        >
+                          <option value="">Select time</option>
+                          {timeSlots.map(slot => (
+                            <option key={slot} value={slot}>{slot}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {bookingDetails.serviceType === 'Office Cleaning' && (
+                    <div className="mb-6">
+                      <label className="block text-sm font-semibold text-gray-700 mb-3">Special Requests</label>
+                      <p className="text-xs text-gray-600 mb-3">Select any additional services you need for your office cleaning</p>
+
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex gap-3">
+                        <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-semibold text-blue-900 mb-1">Additional Charges Apply</p>
+                          <p className="text-xs text-blue-800">
+                            Special requests may incur additional charges. Our team will review your booking and provide you with a final quote before any work begins. You'll be contacted to confirm the additional cost.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 cursor-pointer transition-all">
+                          <input
+                            type="checkbox"
+                            checked={bookingDetails.officeSpecialRequests?.extraProviders || false}
+                            onChange={(e) => {
+                              if (contentRef.current) {
+                                const scrollPos = contentRef.current.scrollTop;
+                                sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
+                              }
+                              setBookingDetails({
+                                ...bookingDetails,
+                                officeSpecialRequests: {
+                                  ...bookingDetails.officeSpecialRequests,
+                                  extraProviders: e.target.checked
+                                }
+                              });
+                            }}
+                            className="w-5 h-5 text-blue-500 rounded"
+                          />
+                          <div>
+                            <p className="font-medium text-gray-900">Additional Service Providers</p>
+                            <p className="text-xs text-gray-600">Send extra staff members to complete the job faster</p>
+                          </div>
+                        </label>
+
+                        <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 cursor-pointer transition-all">
+                          <input
+                            type="checkbox"
+                            checked={bookingDetails.officeSpecialRequests?.highRiskAreas || false}
+                            onChange={(e) => {
+                              if (contentRef.current) {
+                                const scrollPos = contentRef.current.scrollTop;
+                                sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
+                              }
+                              setBookingDetails({
+                                ...bookingDetails,
+                                officeSpecialRequests: {
+                                  ...bookingDetails.officeSpecialRequests,
+                                  highRiskAreas: e.target.checked
+                                }
+                              });
+                            }}
+                            className="w-5 h-5 text-blue-500 rounded"
+                          />
+                          <div>
+                            <p className="font-medium text-gray-900">High-Risk Areas</p>
+                            <p className="text-xs text-gray-600">Special attention to sensitive electronics and valuable items</p>
+                          </div>
+                        </label>
+
+                        <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 cursor-pointer transition-all">
+                          <input
+                            type="checkbox"
+                            checked={bookingDetails.officeSpecialRequests?.earlyMorning || false}
+                            onChange={(e) => {
+                              if (contentRef.current) {
+                                const scrollPos = contentRef.current.scrollTop;
+                                sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
+                              }
+                              setBookingDetails({
+                                ...bookingDetails,
+                                officeSpecialRequests: {
+                                  ...bookingDetails.officeSpecialRequests,
+                                  earlyMorning: e.target.checked
+                                }
+                              });
+                            }}
+                            className="w-5 h-5 text-blue-500 rounded"
+                          />
+                          <div>
+                            <p className="font-medium text-gray-900">Early Morning Service</p>
+                            <p className="text-xs text-gray-600">Before office hours (before 08:00 AM)</p>
+                          </div>
+                        </label>
+
+                        <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 cursor-pointer transition-all">
+                          <input
+                            type="checkbox"
+                            checked={bookingDetails.officeSpecialRequests?.afterHours || false}
+                            onChange={(e) => {
+                              if (contentRef.current) {
+                                const scrollPos = contentRef.current.scrollTop;
+                                sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
+                              }
+                              setBookingDetails({
+                                ...bookingDetails,
+                                officeSpecialRequests: {
+                                  ...bookingDetails.officeSpecialRequests,
+                                  afterHours: e.target.checked
+                                }
+                              });
+                            }}
+                            className="w-5 h-5 text-blue-500 rounded"
+                          />
+                          <div>
+                            <p className="font-medium text-gray-900">After Hours Service</p>
+                            <p className="text-xs text-gray-600">After office hours (after 18:00 PM)</p>
+                          </div>
+                        </label>
+
+                        <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 cursor-pointer transition-all">
+                          <input
+                            type="checkbox"
+                            checked={bookingDetails.officeSpecialRequests?.biohazard || false}
+                            onChange={(e) => {
+                              if (contentRef.current) {
+                                const scrollPos = contentRef.current.scrollTop;
+                                sessionStorage.setItem('bookingScrollPos', scrollPos.toString());
+                              }
+                              setBookingDetails({
+                                ...bookingDetails,
+                                officeSpecialRequests: {
+                                  ...bookingDetails.officeSpecialRequests,
+                                  biohazard: e.target.checked
+                                }
+                              });
+                            }}
+                            className="w-5 h-5 text-blue-500 rounded"
+                          />
+                          <div>
+                            <p className="font-medium text-gray-900">Biohazard Cleaning</p>
+                            <p className="text-xs text-gray-600">Specialized cleaning for contaminated areas</p>
+                          </div>
+                        </label>
+                      </div>
+
+                      {/* Custom Request Text Area */}
+                      <div className="mt-4">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Custom Request</label>
+                        <textarea
+                          key="custom-request"
+                          defaultValue={bookingDetails.customRequest}
+                          placeholder="Custom request"
+                          className="w-full min-h-[120px] rounded-lg bg-white p-4 outline-none border-2 border-gray-300 hover:border-blue-500"
+                          onChange={e => (customRequestRef.current = e.target.value)}
+                          onBlur={commitBookingText}
+                          onFocus={() => (document.body.style.overflow = "hidden")}
+                          onBlurCapture={() => (document.body.style.overflow = "")}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Notes */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">Add specific instructions</label>
+                    <textarea
+                      key="notes"
+                      defaultValue={bookingDetails.notes}
+                      placeholder="Additional notes"
+                      className="w-full min-h-[120px] rounded-lg bg-white p-4 outline-none border-2 border-gray-300 hover:border-blue-500"
+                      onChange={e => (notesRef.current = e.target.value)}
+                      onBlur={commitBookingText}
+                      onFocus={() => (document.body.style.overflow = "hidden")}
+                      onBlurCapture={() => (document.body.style.overflow = "")}
+                    />
                   </div>
                 </div>
-                
               </div>
 
-              {/*<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex gap-3">
-                <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-semibold text-yellow-900 mb-1">Book more, save more!</p>
-                  <p className="text-yellow-800 text-xs">1-2 days: No service fee</p>
-                  <p className="text-yellow-800 text-xs">3-4 days: Up to 15% off</p>
-                  <p className="text-yellow-800 text-xs">5+ days: Up to 28% off</p>
+              {/* Right Column - Summary */}
+              <div>
+                <div className="sticky top-8 max-w-md xl:max-w-sm mx-auto lg:mx-0">
+                  <div className="bg-white border-2 border-gray-200 rounded-lg p-5 lg:p-6 mb-4">
+                    <h3 className="font-bold text-lg mb-4">Booking Details</h3>
+
+                    <div className="space-y-3 mb-6">
+                      <div className="flex items-start gap-3 pb-3 border-b border-gray-100">
+                        <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-600 mb-1">Where:</p>
+                          <p className="font-medium text-sm">{selectedAddress?.formattedAddress || 'No address selected'}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 pb-3 border-b border-gray-100">
+                        <Home className="w-5 h-5 text-gray-400 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-600 mb-1">What:</p>
+                          <p className="font-medium text-sm">{bookingDetails.serviceType}</p>
+                        </div>
+                      </div>
+
+                      {bookingDetails.scheduledDate && bookingDetails.scheduledTime && (
+                        <div className="flex items-start gap-3 pb-3 border-b border-gray-100">
+                          <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-600 mb-1">When:</p>
+                            <p className="font-medium text-sm">
+                              {new Date(bookingDetails.scheduledDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} @ {bookingDetails.scheduledTime}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bg-blue-900 text-white p-4 rounded-lg flex justify-between items-center">
+                      <div>
+                        <p className="text-sm opacity-80">Total hours</p>
+                        <p className="text-2xl font-bold">{bookingDetails.hoursNeeded}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm opacity-80">Est. Price</p>
+                        <p className="text-2xl font-bold">R{calculateTotal()}</p>
+                      </div>
+                    </div>
+
+                  </div>
                 </div>
-              </div>*/}
+              </div>
             </div>
-          </div>
-        </div>
           </div>
         </div>
       </div>
@@ -2305,12 +2282,13 @@ onBlurCapture={() => (document.body.style.overflow = "")}
     // Logged-in user view
     return (
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-6xl mx-auto p-8">
+        <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 xl:p-6">
           <div className="grid md:grid-cols-3 gap-8">
             {/* Left - Summary */}
             <div>
-              <div className="sticky top-8">
-                <div className="bg-white border-2 border-gray-200 rounded-lg p-6 mb-4">
+              // AFTER
+              <div className="sticky top-8 max-w-md xl:max-w-sm mx-auto lg:mx-0">
+                <div className="bg-white border-2 border-gray-200 rounded-lg p-5 lg:p-6 mb-4">
                   <h3 className="font-bold text-lg mb-4">Booking Details</h3>
                   <div className="space-y-3 text-sm">
                     <div className="flex items-start gap-2 pb-2 border-b">
@@ -2451,7 +2429,7 @@ onBlurCapture={() => (document.body.style.overflow = "")}
                           <img
                             src={workerImage}
                             alt={worker.fullName}
-                            className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 shadow-sm flex-shrink-0"
+                            className="w-14 h-14 lg:w-16 lg:h-16 rounded-full object-cover border-2 border-gray-200 shadow-sm flex-shrink-0"
                             onError={(e) => {
                               e.target.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHgAAAB4CAQAAABi6S8PAAAAHklEQVR42u3BMQEAAADCoPdPbQ43oAAAAAAAAAAA4B8GEQAAAVmOGS0AAAAASUVORK5CYII=";
                             }}
@@ -2749,12 +2727,13 @@ onBlurCapture={() => (document.body.style.overflow = "")}
   
     return (
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto p-8">
+        // AFTER
+        <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 xl:p-6">
           <div className="grid md:grid-cols-5 gap-8">
             {/* Left - Summary */}
             <div className="md:col-span-2">
-              <div className="sticky top-8">
-                <div className="bg-white border-2 border-gray-200 rounded-lg p-6">
+              <div className="sticky top-8 max-w-md xl:max-w-sm mx-auto lg:mx-0">
+                <div className="bg-white border-2 border-gray-200 rounded-lg p-5 lg:p-6 mb-4">
                   <h3 className="font-bold text-lg mb-4">Booking Details</h3>
                   
                   <div className="space-y-3 text-sm mb-6">
@@ -2983,7 +2962,7 @@ const ConfirmationStep = () => {
 
   return (
     <div className="flex-1 overflow-y-auto bg-gradient-to-br from-green-50 via-blue-50 to-green-50">
-      <div className="max-w-3xl mx-auto p-8 py-16">
+    <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 xl:p-6">
         {/* Animated Success Icon */}
         <div className="text-center mb-8">
           <div className="relative w-24 h-24 mx-auto mb-6">
@@ -3236,7 +3215,7 @@ const ConfirmationStep = () => {
     <div className="fixed inset-0 bg-white z-50 flex flex-col">
       {/* Header */}
       <div className="border-b border-blue-200/50 backdrop-blur-xl sticky top-0 z-30 shadow-sm">
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5 lg:py-4">
 
     {/* Header */}
     <div className="flex items-start sm:items-center justify-between mb-6 sm:mb-8 gap-3">
@@ -3251,7 +3230,7 @@ const ConfirmationStep = () => {
         )}
 
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight text-balance">
+          <h1 className="text-xl sm:text-2xl lg:text-2xl xl:text-3xl font-bold text-gray-900 tracking-tight text-balance">
             {step === 4
               ? "Booking Confirmed"
               : `Book ${selectedService?.label || "Service"}`}
@@ -3359,7 +3338,7 @@ const ConfirmationStep = () => {
       {/* Footer - Step 3 */}
 {step < 4 && (
   <div className="border-t-2 border-gray-200 bg-white">
-    <div className="max-w-7xl mx-auto px-8 py-6">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-5">
       <div className="flex gap-4">
         <button
           onClick={handleBack}
