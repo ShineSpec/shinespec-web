@@ -2286,7 +2286,6 @@ if (bookingDetails.serviceType === 'Laundry & Ironing' && !bookingDetails.laundr
           <div className="grid md:grid-cols-3 gap-8">
             {/* Left - Summary */}
             <div>
-              // AFTER
               <div className="sticky top-8 max-w-md xl:max-w-sm mx-auto lg:mx-0">
                 <div className="bg-white border-2 border-gray-200 rounded-lg p-5 lg:p-6 mb-4">
                   <h3 className="font-bold text-lg mb-4">Booking Details</h3>
@@ -2727,7 +2726,6 @@ if (bookingDetails.serviceType === 'Laundry & Ironing' && !bookingDetails.laundr
   
     return (
       <div className="flex-1 overflow-y-auto">
-        // AFTER
         <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 xl:p-6">
           <div className="grid md:grid-cols-5 gap-8">
             {/* Left - Summary */}
