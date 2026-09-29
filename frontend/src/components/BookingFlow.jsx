@@ -3259,72 +3259,63 @@ const ConfirmationStep = () => {
     </div>
 
     {/* Progress Bar */}
+        {/* Progress Bar */}
     {step < 4 && (
-          <div className="relative mt-4">
-            {/* Connector background - positioned to connect between circles */}
-            <div className="absolute top-5 h-2 bg-gray-200 rounded-full" style={{ left: 'calc(16.67% + 20px)', right: 'calc(16.67% + 20px)' }} />
-            {/* Active connector fill with glow effect */}
-            <div
-              className={`
-                absolute top-5 h-2 rounded-full bg-blue-600 transition-all duration-500 ease-out
-                ${
-                  step === 1
-                    ? "w-0"
-                    : step === 2
-                    ? "left-[calc(16.67%+20px)] right-[50%]"
-                    : step >= 3
-                    ? "left-[calc(16.67%+20px)] right-[calc(16.67%+20px)]"
-                    : "w-0"
-                }
-              `}
-              style={step === 1 ? { left: 'calc(16.67% + 20px)' } : {}}
-            />
+      <div className="mt-3 sm:mt-4 lg:mt-3 max-w-md lg:max-w-sm mx-auto">
+        <div className="flex items-center">
+          {[1, 2, 3].map((s, idx) => (
+            <React.Fragment key={s}>
+              {/* Step Circle + Label */}
+              <div className="flex flex-col items-center flex-shrink-0">
+                <div
+                  className={`
+                    w-8 h-8 sm:w-9 sm:h-9 lg:w-8 lg:h-8
+                    rounded-xl
+                    flex items-center justify-center
+                    font-bold text-xs sm:text-sm
+                    transition-all duration-500 ease-in-out
+                    ${
+                      step > s
+                        ? "bg-blue-600 text-white"
+                        : step === s
+                          ? "bg-blue-600 text-white ring-4 ring-blue-100"
+                          : "bg-gray-200 text-gray-400"
+                    }
+                  `}
+                >
+                  {step > s ? (
+                    <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                  ) : (
+                    s
+                  )}
+                </div>
+                <span
+                  className={`
+                    mt-1.5 text-[10px] sm:text-xs font-medium transition-colors whitespace-nowrap
+                    ${step >= s ? "text-gray-900" : "text-gray-400"}
+                  `}
+                >
+                  {s === 1 && "Details"}
+                  {s === 2 && "Worker"}
+                  {s === 3 && "Payment"}
+                </span>
+              </div>
 
-    {/* Steps */}
-    <div className="relative grid grid-cols-3">
-      {[1, 2, 3].map((s) => (
-        <div key={s} className="flex flex-col items-center">
-          {/* Step Circle */}
-          <div
-            className={`
-              relative z-10
-              w-10 h-10 sm:w-11 sm:h-11
-              rounded-2xl
-              flex items-center justify-center
-              font-bold text-sm
-              transition-all duration-500 ease-in-out
-              ${
-                step > s
-                  ? "bg-blue-600 text-white scale-95"
-                  : step === s
-                    ? "bg-blue-600 text-white ring-4 ring-blue-100 scale-105"
-                    : "bg-gray-200 text-gray-400"
-              }
-            `}
-          >
-            {step > s ? (
-              <Check className="w-5 h-5 animate-[pop_0.6s_ease-out]" />
-            ) : (
-              s
-            )}
-          </div>
-
-          {/* Label BELOW */}
-          <span
-            className={`
-              mt-2 text-xs sm:text-sm font-medium transition-colors
-              ${step >= s ? "text-gray-900" : "text-gray-400"}
-            `}
-          >
-            {s === 1 && "Details"}
-            {s === 2 && "Worker"}
-            {s === 3 && "Payment"}
-          </span>
+              {/* Connector line (not after the last step) */}
+              {idx < 2 && (
+                <div className="flex-1 h-1 sm:h-1.5 mx-1.5 sm:mx-2 -mt-4 sm:-mt-5 rounded-full bg-gray-200 overflow-hidden">
+                  <div
+                    className={`h-full bg-blue-600 rounded-full transition-all duration-500 ease-out ${
+                      step > s ? "w-full" : "w-0"
+                    }`}
+                  />
+                </div>
+              )}
+            </React.Fragment>
+          ))}
         </div>
-      ))}
-    </div>
-  </div>
-)}
+      </div>
+    )}
 
   </div>
 </div>
