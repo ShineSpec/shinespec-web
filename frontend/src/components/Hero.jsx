@@ -30,7 +30,7 @@ const Hero = () => {
 
   return (
     <>
-      <section className="relative mt-8 sm:mt-10 lg:mt-24 xl:mt-28 overflow-hidden py-8 sm:py-10 lg:py-6 px-4 sm:px-8 md:px-12 lg:px-16 xl:px-24 flex flex-col-reverse lg:flex-row items-center justify-center gap-8 sm:gap-10 lg:gap-10 xl:gap-16 lg:min-h-[calc(100vh-6rem)]">
+      <section className="relative mt-20 sm:mt-22 lg:mt-24 xl:mt-28 overflow-hidden py-8 sm:py-10 lg:py-6 px-4 sm:px-8 md:px-12 lg:px-16 xl:px-24 flex flex-col-reverse lg:flex-row items-center justify-center gap-8 sm:gap-10 lg:gap-10 xl:gap-16 lg:min-h-[calc(100vh-6rem)]">
 
         {/* Left Content */}
         <div className="flex-1 w-full max-w-6xl space-y-4 sm:space-y-6 lg:space-y-5 xl:space-y-6 relative z-20 lg:ml-12 xl:ml-20">
