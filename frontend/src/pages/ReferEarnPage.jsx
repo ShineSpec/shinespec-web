@@ -152,7 +152,7 @@ const ReferEarnPage = () => {
             Log In
           </button>
           <button
-            onClick={() => navigate("/signup", { state: { returnTo: "/business-services/refer-earn" } })}
+            onClick={() => navigate("/sign-up", { state: { returnTo: "/business-services/refer-earn" } })}
             className="w-full px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-full font-semibold hover:bg-gray-50 transition-all"
           >
             Create an Account
