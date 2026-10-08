@@ -1,13 +1,21 @@
 import { SignIn } from "@clerk/clerk-react";
+import { useLocation } from "react-router-dom";
+import { getSafeReturnTo } from "../lib/returnTo";
 
-const Login = () => (
+const Login = () => {
+  const { search } = useLocation();
+  const returnTo = getSafeReturnTo(search);
+  const qs = search ? `?returnTo=${encodeURIComponent(returnTo)}` : "";
+
+  return (
   <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 px-4 py-8 sm:px-6 sm:py-12 lg:mt-12">
     <div className="w-full max-w-[400px] sm:max-w-[440px] md:max-w-[460px]">
       <SignIn
-        path="/login"
-        routing="path"
-        signUpUrl="/sign-up"
-        afterSignInUrl="/dashboard"
+          path="/login"
+          routing="path"
+          signUpUrl={`/sign-up${qs}`}
+          forceRedirectUrl={returnTo}
+          signUpForceRedirectUrl={returnTo}
         appearance={{
           elements: {
             rootBox: "w-full mx-auto",
@@ -34,5 +42,6 @@ const Login = () => (
     </div>
   </div>
 );
+};
 
 export default Login;

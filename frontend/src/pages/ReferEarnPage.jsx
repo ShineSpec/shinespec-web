@@ -3,6 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { Gift, Clock, Wallet, CheckCircle, AlertCircle, ArrowLeft, Loader2, Lock, User, ArrowRight } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
 
+const RETURN_TO = "/business-services/refer-earn";
+const LOGIN_URL = `/login?returnTo=${encodeURIComponent(RETURN_TO)}`;
+const SIGN_UP_URL = `/sign-up?returnTo=${encodeURIComponent(RETURN_TO)}`;
+
 const steps = [
   {
     icon: <Clock className="w-6 h-6 text-blue-600" />,
@@ -21,15 +25,32 @@ const steps = [
   },
 ];
 
+// Reads the values that ClerkAuthBridge keeps in localStorage
+const readAuth = () => {
+  let user = null;
+  try {
+    const stored = localStorage.getItem("user");
+    user = stored ? JSON.parse(stored) : null;
+  } catch (e) {
+    user = null;
+  }
+  return { token: localStorage.getItem("token"), user };
+};
+
 const ReferEarnPage = () => {
   const navigate = useNavigate();
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-  const { getToken } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
 
-  // ── Auth state ──────────────────────────────────────────────
-  const token = localStorage.getItem("token");
-  const storedUser = localStorage.getItem("user");
-  const loggedInUser = storedUser ? JSON.parse(storedUser) : null;
+  // ── Auth state (updates when ClerkAuthBridge finishes syncing) ──
+  const [auth, setAuth] = useState(readAuth);
+  const { token, user: loggedInUser } = auth;
+
+  useEffect(() => {
+    const sync = () => setAuth(readAuth());
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, []);
 
   // ── Page state ──────────────────────────────────────────────
   const [loading, setLoading] = useState(false);
@@ -48,28 +69,44 @@ const ReferEarnPage = () => {
     message: "",
   });
 
-  // ── On mount: check if this user already has a referral ────
+  // Fill in the profile details once they arrive, without overwriting what the user typed
   useEffect(() => {
-  if (!token) { setCheckingExisting(false); return; }
+    if (!loggedInUser) return;
+    setForm((prev) => ({
+      ...prev,
+      fullName: prev.fullName || `${loggedInUser.name} ${loggedInUser.lastname}`,
+      email: prev.email || loggedInUser.email || "",
+      phone: prev.phone || loggedInUser.phone || "",
+    }));
+  }, [loggedInUser]);
 
-  const check = async () => {
-    try {
-      const freshToken = await getToken(); // NEW
-      const res = await fetch(`${API_BASE_URL}/api/auth/my-referral`, {
-        headers: { Authorization: `Bearer ${freshToken}` }, // CHANGED
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.referral) setExistingReferral(data.referral);
-      }
-    } catch (e) {
-      // silently ignore — not critical
-    } finally {
+  // ── Check if this user already has a referral ──────────────
+  useEffect(() => {
+    if (!token) {
       setCheckingExisting(false);
+      return;
     }
-  };
-  check();
-}, [token]);
+
+    setCheckingExisting(true);
+
+    const check = async () => {
+      try {
+        const freshToken = await getToken();
+        const res = await fetch(`${API_BASE_URL}/api/auth/my-referral`, {
+          headers: { Authorization: `Bearer ${freshToken}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.referral) setExistingReferral(data.referral);
+        }
+      } catch (e) {
+        // silently ignore — not critical
+      } finally {
+        setCheckingExisting(false);
+      }
+    };
+    check();
+  }, [token]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -78,60 +115,70 @@ const ReferEarnPage = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!form.fullName || !form.email || !form.phone || !form.agencyName) {
-    setError("Please fill in your name, email, phone, and agency/company name");
-    return;
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(form.email)) {
-    setError("Please enter a valid email address");
-    return;
-  }
-
-  setLoading(true);
-  setError("");
-
-  try {
-    // Ask Clerk for a fresh token at the moment of submit
-    const freshToken = await getToken();
-
-    if (!freshToken) {
-      setError("Your session has expired. Please log in again.");
-      navigate("/login", { state: { returnTo: "/business-services/refer-earn" } });
+    if (!form.fullName || !form.email || !form.phone || !form.agencyName) {
+      setError("Please fill in your name, email, phone, and agency/company name");
       return;
     }
 
-    const res = await fetch(`${API_BASE_URL}/api/auth/referral-signup`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${freshToken}`,
-      },
-      body: JSON.stringify(form),
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || "Failed to submit");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      setError("Please enter a valid email address");
+      return;
     }
 
-    const data = await res.json();
+    setLoading(true);
+    setError("");
 
-    setExistingReferral({
-      referralCode: data.referralCode,
-      payoutPreference: form.payoutPreference,
-      status: "pending",
-    });
-    setSubmitted(true);
-  } catch (err) {
-    setError(err.message || "Something went wrong. Please try again.");
-  } finally {
-    setLoading(false);
+    try {
+      // Ask Clerk for a fresh token at the moment of submit
+      const freshToken = await getToken();
+
+      if (!freshToken) {
+        setError("Your session has expired. Please log in again.");
+        navigate(LOGIN_URL);
+        return;
+      }
+
+      const res = await fetch(`${API_BASE_URL}/api/auth/referral-signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${freshToken}`,
+        },
+        body: JSON.stringify(form),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to submit");
+      }
+
+      const data = await res.json();
+
+      setExistingReferral({
+        referralCode: data.referralCode,
+        payoutPreference: form.payoutPreference,
+        status: "pending",
+      });
+      setSubmitted(true);
+    } catch (err) {
+      setError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── CLERK / PROFILE STILL LOADING ───────────────────────────
+  // Covers the moment right after sign-in, before ClerkAuthBridge has saved the profile
+  if (!isLoaded || (isSignedIn && !loggedInUser)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+      </div>
+    );
   }
-};
 
   // ── NOT LOGGED IN ───────────────────────────────────────────
   if (!token || !loggedInUser) {
@@ -146,13 +193,13 @@ const ReferEarnPage = () => {
             The Refer & Earn program is linked to your ShineSpec account so we can track your referrals and pay you accurately.
           </p>
           <button
-            onClick={() => navigate("/login", { state: { returnTo: "/business-services/refer-earn" } })}
+            onClick={() => navigate(LOGIN_URL)}
             className="w-full px-6 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-all mb-3"
           >
             Log In
           </button>
           <button
-            onClick={() => navigate("/sign-up", { state: { returnTo: "/business-services/refer-earn" } })}
+            onClick={() => navigate(SIGN_UP_URL)}
             className="w-full px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-full font-semibold hover:bg-gray-50 transition-all"
           >
             Create an Account
