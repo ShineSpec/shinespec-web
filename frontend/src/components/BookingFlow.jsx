@@ -27,6 +27,75 @@ import AIServiceMatcher from './AIServiceMatcher';
 import { useAuth, useClerk, useUser } from '@clerk/clerk-react';
 import { getAuthToken } from '../lib/auth';
 
+// Layout rules for the booking flow. They use plain CSS (not Tailwind classes) so they
+// behave the same on every Tailwind version, and so one set of rules can react to BOTH the
+// width and the height of the window. That is what keeps it usable on laptops whose
+// display scaling (100% / 125% / 150%) changes how many CSS pixels the window has.
+const RESPONSIVE_CSS = `
+.bf-root { --bf-chrome: 9.5rem; }
+
+/* page container: fluid, and wider on big screens instead of floating in empty margins */
+.bf-container { width: 100%; max-width: 1680px; margin-inline: auto; padding: 1rem; }
+@media (min-width: 640px)  { .bf-container { padding: 1.25rem 1.5rem; } }
+@media (min-width: 1024px) { .bf-container { padding: 1.5rem 2rem; } }
+@media (min-width: 1536px) { .bf-container { max-width: 1760px; padding: 1.75rem 2.5rem; } }
+.bf-container--narrow { max-width: 72rem; }
+@media (min-width: 1536px) { .bf-container--narrow { max-width: 80rem; } }
+
+/* header and footer share the gutters but stay slim */
+.bf-header-inner, .bf-footer-inner { padding-top: .75rem; padding-bottom: .75rem; }
+
+/* step 1: matcher rail | form | summary */
+.bf-grid-details { display: grid; gap: 1.5rem; grid-template-columns: minmax(0, 1fr); }
+.bf-grid-details > * { min-width: 0; }
+@media (min-width: 768px) {
+  .bf-grid-details { grid-template-columns: minmax(0, 1fr) minmax(15rem, 19rem); }
+  .bf-rail { grid-column: 1 / -1; }
+}
+@media (min-width: 1280px) {
+  .bf-grid-details { grid-template-columns: minmax(16rem, 19rem) minmax(0, 1fr) minmax(17rem, 21rem); gap: 2rem; }
+  .bf-rail { grid-column: auto; align-self: start; }
+}
+@media (min-width: 1536px) {
+  .bf-grid-details { grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr) minmax(19rem, 24rem); }
+}
+
+/* step 2: summary | workers */
+.bf-grid-two { display: grid; gap: 1.5rem; grid-template-columns: minmax(0, 1fr); }
+.bf-grid-two > * { min-width: 0; }
+@media (min-width: 768px)  { .bf-grid-two { grid-template-columns: minmax(15rem, 20rem) minmax(0, 1fr); } }
+@media (min-width: 1280px) { .bf-grid-two { gap: 2rem; } }
+
+/* side panels stick while you scroll, but never grow taller than the window */
+.bf-sticky { position: static; }
+@media (min-width: 768px) {
+  .bf-sticky {
+    position: sticky; top: 1rem; overflow-y: auto; overscroll-behavior: contain;
+    max-height: calc(100vh - var(--bf-chrome) - 2rem);
+    max-height: calc(100dvh - var(--bf-chrome) - 2rem);
+  }
+}
+@media (min-width: 1280px) {
+  .bf-rail {
+    position: sticky; top: 1rem; overflow-y: auto; overscroll-behavior: contain;
+    max-height: calc(100vh - var(--bf-chrome) - 2rem);
+    max-height: calc(100dvh - var(--bf-chrome) - 2rem);
+  }
+}
+
+/* the title scales smoothly instead of jumping between breakpoints */
+.bf-title { font-size: clamp(1.125rem, 0.85rem + 0.8vw, 1.75rem); line-height: 1.2; }
+
+/* short windows (laptops at 125-150% zoom): slimmer header and footer, more room for the form */
+@media (max-height: 760px) {
+  .bf-root { --bf-chrome: 7rem; }
+  .bf-sub { display: none; }
+  .bf-header-inner, .bf-footer-inner { padding-top: .4rem; padding-bottom: .4rem; }
+  .bf-footer-inner button { padding-top: .5rem; padding-bottom: .5rem; }
+}
+@media (max-height: 600px) { .bf-step-label { display: none; } }
+`;
+
 const FormalBookingFlow = ({ selectedService, onClose }) => {
   const [step, setStep] = useState(1);
   const { user: clerkUser } = useUser();
@@ -70,7 +139,7 @@ const FormalBookingFlow = ({ selectedService, onClose }) => {
 const { openSignIn } = useClerk();
 const isGuest = !isSignedIn;
 const [token, setToken] = useState(null);
-const [showServiceVideo, setShowServiceVideo] = useState(true);
+const [showServiceVideo, setShowServiceVideo] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1280);
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   // Check for payment success on mount (when returning from payment gateway)
   useEffect(() => {
@@ -1437,12 +1506,23 @@ if (bookingDetails.serviceType === 'Laundry & Ironing' && !bookingDetails.laundr
 
   // Step 1: Booking Details
   const BookingDetailsStep = () => (
-    <div className="flex-1 overflow-y-auto" ref={contentRef}>
+    <div className="flex-1 min-h-0 overflow-y-auto" ref={contentRef}>
       {/* Main Content Container */}
-      <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 xl:p-6">
-        <div className="relative">
-          {/* AI Service Matcher - Positioned on left side (Desktop only) */}
-          <div className="hidden lg:block absolute left-0 top-0 w-64 xl:w-72 z-20">
+      <div className="bf-container">
+            {isGuest && (
+              <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
+                <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-blue-900 font-semibold">Guest Checkout</p>
+                  <p className="text-sm text-blue-800">
+                    You're booking as a guest. You'll create your account or log in before payment.
+                  </p>
+                </div>
+              </div>
+            )}
+        <div className="bf-grid-details">
+          {/* Left rail: AI matcher + tutorial video. One copy that moves with the screen size. */}
+          <aside className="bf-rail">
             <AIServiceMatcher
               onMatch={(matchResult) => {
                 console.log('AI Match Result:', matchResult);
@@ -1450,9 +1530,9 @@ if (bookingDetails.serviceType === 'Laundry & Ironing' && !bookingDetails.laundr
               bookingDetails={bookingDetails}
               setBookingDetails={setBookingDetails}
             />
-            {/* Service Tutorial Video - desktop sidebar, already lg+ only */}
+            <div className="hidden sm:block mt-4">
             {SERVICE_VIDEOS[bookingDetails.serviceType] && (
-              <div className="mb-6">
+              <div>
                 <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl overflow-hidden">
                   <div className="flex items-center justify-between p-4 border-b border-purple-200 bg-white/50">
                     <div className="flex items-center gap-2">
@@ -1488,24 +1568,11 @@ if (bookingDetails.serviceType === 'Laundry & Ironing' && !bookingDetails.laundr
                 </div>
               </div>
             )}
-          </div>
+            </div>
+          </aside>
 
-          {/* Content wrapper with left margin for AI matcher */}
-          <div className="lg:pl-72 xl:pl-80">
-            {isGuest && (
-              <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
-                <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm text-blue-900 font-semibold">Guest Checkout</p>
-                  <p className="text-sm text-blue-800">
-                    You're booking as a guest. You'll create your account or log in before payment.
-                  </p>
-                </div>
-              </div>
-            )}
-            <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
               {/* Left Column - Form */}
-              <div className="space-y-6">
+              <div className="bf-form space-y-6">
 
                 <div>
                   <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4 lg:mb-6">Add details about your booking</h2>
@@ -1523,54 +1590,6 @@ if (bookingDetails.serviceType === 'Laundry & Ironing' && !bookingDetails.laundr
                     </div>
                   </div>
 
-                  {/* AI Service Matcher (Mobile/Tablet - visible below lg, below service description) */}
-                  <div className="lg:hidden mb-6">
-                    <AIServiceMatcher
-                      onMatch={(matchResult) => {
-                        console.log('AI Match Result:', matchResult);
-                      }}
-                      bookingDetails={bookingDetails}
-                      setBookingDetails={setBookingDetails}
-                    />
-                    {/* Service Tutorial Video - hidden on small phone screens, shown from sm: (≥640px) up to lg */}
-                    {SERVICE_VIDEOS[bookingDetails.serviceType] && (
-                      <div className="hidden sm:block mb-6">
-                        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl overflow-hidden">
-                          <div className="flex items-center justify-between p-4 border-b border-purple-200 bg-white/50">
-                            <div className="flex items-center gap-2">
-                              <div>
-                                <h4 className="font-semibold text-gray-900">How to Book {bookingDetails.serviceType}</h4>
-                                <p className="text-xs text-gray-600">Watch our quick tutorial</p>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => setShowServiceVideo(!showServiceVideo)}
-                              className="p-2 hover:bg-white rounded-lg transition-colors"
-                            >
-                              {showServiceVideo ? (
-                                <ChevronDown className="w-5 h-5 text-gray-600" />
-                              ) : (
-                                <ChevronRight className="w-5 h-5 text-gray-600" />
-                              )}
-                            </button>
-                          </div>
-
-                          {showServiceVideo && (
-                            <div className="relative" style={{ paddingBottom: '56.25%' }}>
-                              <iframe
-                                className="absolute top-0 left-0 w-full h-full"
-                                src={`https://www.youtube.com/embed/${SERVICE_VIDEOS[bookingDetails.serviceType]}?rel=0&modestbranding=1`}
-                                title={`How to book ${bookingDetails.serviceType}`}
-                                frameBorder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
 
 
                   {/* Address Selection */}
@@ -1676,7 +1695,7 @@ if (bookingDetails.serviceType === 'Laundry & Ironing' && !bookingDetails.laundr
                   {/* Extra Tasks */}
                   <div className="mb-6">
                     <label className="block text-sm font-semibold text-gray-700 mb-3">Extra Tasks</label>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(5.75rem,1fr))] gap-2 sm:gap-3">
                       {extraTasksOptions.map(task => (
                         <button
                           key={task.id}
@@ -1770,7 +1789,7 @@ if (bookingDetails.serviceType === 'Laundry & Ironing' && !bookingDetails.laundr
                       {/* Event Size Selection */}
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-4">Select Event Size</label>
-                        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-[repeat(auto-fit,minmax(8rem,1fr))] gap-3">
                           {[
                             { value: 'small', label: 'Small', guests: '≤50 guests', color: 'blue' },
                             { value: 'medium', label: 'Medium', guests: '51–150 guests', color: 'purple' },
@@ -2196,8 +2215,8 @@ if (bookingDetails.serviceType === 'Laundry & Ironing' && !bookingDetails.laundr
               </div>
 
               {/* Right Column - Summary */}
-              <div>
-                <div className="sticky top-8 max-w-md xl:max-w-sm mx-auto lg:mx-0">
+              <div className="bf-summary">
+                <div className="bf-sticky">
                   <div className="bg-white border-2 border-gray-200 rounded-lg p-5 lg:p-6 mb-4">
                     <h3 className="font-bold text-lg mb-4">Booking Details</h3>
 
@@ -2246,8 +2265,6 @@ if (bookingDetails.serviceType === 'Laundry & Ironing' && !bookingDetails.laundr
                 </div>
               </div>
             </div>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -2282,11 +2299,11 @@ if (bookingDetails.serviceType === 'Laundry & Ironing' && !bookingDetails.laundr
     // Logged-in user view
     return (
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 xl:p-6">
-          <div className="grid md:grid-cols-3 gap-8">
+        <div className="bf-container">
+          <div className="bf-grid-two">
             {/* Left - Summary */}
             <div>
-              <div className="sticky top-8 max-w-md xl:max-w-sm mx-auto lg:mx-0">
+              <div className="bf-sticky">
                 <div className="bg-white border-2 border-gray-200 rounded-lg p-5 lg:p-6 mb-4">
                   <h3 className="font-bold text-lg mb-4">Booking Details</h3>
                   <div className="space-y-3 text-sm">
@@ -2353,16 +2370,16 @@ if (bookingDetails.serviceType === 'Laundry & Ironing' && !bookingDetails.laundr
             </div>
   
             {/* Right - Workers List */}
-            <div className="md:col-span-2">
+            <div className="min-w-0">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">
                 Choose your worker
                 <span className="text-sm font-normal text-gray-600 ml-2">
                   ({workers.length} {workers.length === 1 ? 'worker' : 'workers'} available)
                 </span>
               </h2>
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4 items-start">
                 {workers.length === 0 ? (
-                  <div className="text-center py-8">
+                  <div className="text-center py-8 2xl:col-span-2">
                     <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 mb-6">
                       <AlertCircle className="w-12 h-12 text-blue-500 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">No Service Providers Available Right Now</h3>
@@ -2726,11 +2743,11 @@ if (bookingDetails.serviceType === 'Laundry & Ironing' && !bookingDetails.laundr
   
     return (
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 xl:p-6">
+        <div className="bf-container bf-container--narrow">
           <div className="grid md:grid-cols-5 gap-8">
             {/* Left - Summary */}
             <div className="md:col-span-2">
-              <div className="sticky top-8 max-w-md xl:max-w-sm mx-auto lg:mx-0">
+              <div className="bf-sticky">
                 <div className="bg-white border-2 border-gray-200 rounded-lg p-5 lg:p-6 mb-4">
                   <h3 className="font-bold text-lg mb-4">Booking Details</h3>
                   
@@ -2960,7 +2977,7 @@ const ConfirmationStep = () => {
 
   return (
     <div className="flex-1 overflow-y-auto bg-gradient-to-br from-green-50 via-blue-50 to-green-50">
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 xl:p-6">
+    <div className="bf-container bf-container--narrow">
         {/* Animated Success Icon */}
         <div className="text-center mb-8">
           <div className="relative w-24 h-24 mx-auto mb-6">
@@ -3209,125 +3226,114 @@ const ConfirmationStep = () => {
 
   const CurrentStep = stepComponents[step - 1];
 
-  return (
-    <div className="fixed inset-0 bg-white z-50 flex flex-col">
-      {/* Header */}
-      <div className="border-b border-blue-200/50 backdrop-blur-xl sticky top-0 z-30 shadow-sm">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5 lg:py-4">
-
-    {/* Header */}
-    <div className="flex items-start sm:items-center justify-between mb-6 sm:mb-8 gap-3">
-      <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
-        {step < 4 && (
-          <button
-            onClick={handleBack}
-            className="group flex-shrink-0 p-2.5 rounded-2xl bg-white/80 hover:bg-white border border-blue-200/50 hover:border-blue-300 transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md"
-          >
-            <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6 text-blue-700 group-hover:text-blue-900 transition-colors" />
-          </button>
-        )}
-
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl lg:text-2xl xl:text-3xl font-bold text-gray-900 tracking-tight text-balance">
-            {step === 4
-              ? "Booking Confirmed"
-              : `Book ${selectedService?.label || "Service"}`}
-          </h1>
-          <p className="text-xs sm:text-sm lg:text-base text-gray-500 font-medium mt-1 sm:mt-1.5">
-            {step === 1 && "Step 1 of 3 • Service Details"}
-            {step === 2 && "Step 2 of 3 • Choose Worker"}
-            {step === 3 && "Step 3 of 3 • Review & Pay"}
-            {step === 4 && "Your booking is complete"}
-          </p>
-        </div>
-      </div>
-
-      {step < 4 && (
-        <button
-          onClick={() => {
-            if (onClose && typeof onClose === "function") {
-              onClose();
-            } else {
-              window.history.back();
-            }
-          }}
-          className="group flex-shrink-0 p-2.5 rounded-2xl bg-white/80 hover:bg-white border border-blue-200/50 hover:border-violet-300 transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md"
-        >
-          <X className="w-5 h-5 sm:w-6 sm:h-6 text-blue-700 group-hover:text-blue-900 transition-colors" />
-        </button>
-      )}
+  // The 1-2-3 progress indicator. Drawn twice (inline in the header on wider screens,
+  // under the title on phones); only one of the two is visible at a time.
+  const renderStepper = () => (
+    <div className="flex items-center">
+      {[1, 2, 3].map((s, idx) => (
+        <React.Fragment key={s}>
+          <div className="flex flex-col items-center flex-shrink-0">
+            <div
+              className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs sm:text-sm transition-all duration-500 ease-in-out ${
+                step > s
+                  ? "bg-blue-600 text-white"
+                  : step === s
+                    ? "bg-blue-600 text-white ring-4 ring-blue-100"
+                    : "bg-gray-200 text-gray-400"
+              }`}
+            >
+              {step > s ? <Check className="w-4 h-4" /> : s}
+            </div>
+            <span
+              className={`bf-step-label mt-1 text-[10px] sm:text-xs font-medium transition-colors whitespace-nowrap ${
+                step >= s ? "text-gray-900" : "text-gray-400"
+              }`}
+            >
+              {s === 1 && "Details"}
+              {s === 2 && "Worker"}
+              {s === 3 && "Payment"}
+            </span>
+          </div>
+          {idx < 2 && (
+            <div className="flex-1 h-1 mx-1.5 sm:mx-2 self-start mt-3.5 rounded-full bg-gray-200 overflow-hidden">
+              <div
+                className={`h-full bg-blue-600 rounded-full transition-all duration-500 ease-out ${
+                  step > s ? "w-full" : "w-0"
+                }`}
+              />
+            </div>
+          )}
+        </React.Fragment>
+      ))}
     </div>
+  );
 
-    {/* Progress Bar */}
-        {/* Progress Bar */}
-    {step < 4 && (
-      <div className="mt-3 sm:mt-4 lg:mt-3 max-w-md lg:max-w-sm mx-auto">
-        <div className="flex items-center">
-          {[1, 2, 3].map((s, idx) => (
-            <React.Fragment key={s}>
-              {/* Step Circle + Label */}
-              <div className="flex flex-col items-center flex-shrink-0">
-                <div
-                  className={`
-                    w-8 h-8 sm:w-9 sm:h-9 lg:w-8 lg:h-8
-                    rounded-xl
-                    flex items-center justify-center
-                    font-bold text-xs sm:text-sm
-                    transition-all duration-500 ease-in-out
-                    ${
-                      step > s
-                        ? "bg-blue-600 text-white"
-                        : step === s
-                          ? "bg-blue-600 text-white ring-4 ring-blue-100"
-                          : "bg-gray-200 text-gray-400"
-                    }
-                  `}
+  return (
+    <div className="fixed inset-0 bg-white z-50 flex flex-col bf-root">
+      <style>{RESPONSIVE_CSS}</style>
+      {/* Header */}
+      <header className="bf-header border-b border-blue-200/50 bg-white sticky top-0 z-30 shadow-sm flex-shrink-0">
+        <div className="bf-container bf-header-inner">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+              {step < 4 && (
+                <button
+                  onClick={handleBack}
+                  aria-label="Back"
+                  className="group flex-shrink-0 p-2 rounded-xl bg-white/80 hover:bg-white border border-blue-200/50 hover:border-blue-300 transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md"
                 >
-                  {step > s ? (
-                    <Check className="w-4 h-4 sm:w-5 sm:h-5" />
-                  ) : (
-                    s
-                  )}
-                </div>
-                <span
-                  className={`
-                    mt-1.5 text-[10px] sm:text-xs font-medium transition-colors whitespace-nowrap
-                    ${step >= s ? "text-gray-900" : "text-gray-400"}
-                  `}
-                >
-                  {s === 1 && "Details"}
-                  {s === 2 && "Worker"}
-                  {s === 3 && "Payment"}
-                </span>
-              </div>
-
-              {/* Connector line (not after the last step) */}
-              {idx < 2 && (
-                <div className="flex-1 h-1 sm:h-1.5 mx-1.5 sm:mx-2 -mt-4 sm:-mt-5 rounded-full bg-gray-200 overflow-hidden">
-                  <div
-                    className={`h-full bg-blue-600 rounded-full transition-all duration-500 ease-out ${
-                      step > s ? "w-full" : "w-0"
-                    }`}
-                  />
-                </div>
+                  <ArrowLeft className="w-5 h-5 text-blue-700 group-hover:text-blue-900 transition-colors" />
+                </button>
               )}
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
-    )}
 
-  </div>
-</div>
+              <div className="min-w-0 flex-1">
+                <h1 className="bf-title font-bold text-gray-900 tracking-tight truncate">
+                  {step === 4
+                    ? "Booking Confirmed"
+                    : `Book ${selectedService?.label || "Service"}`}
+                </h1>
+                <p className="bf-sub text-xs sm:text-sm text-gray-500 font-medium mt-0.5">
+                  {step === 1 && "Step 1 of 3 • Service Details"}
+                  {step === 2 && "Step 2 of 3 • Choose Worker"}
+                  {step === 3 && "Step 3 of 3 • Review & Pay"}
+                  {step === 4 && "Your booking is complete"}
+                </p>
+              </div>
+            </div>
+
+            {step < 4 && (
+              <div className="hidden md:block flex-shrink-0 md:w-64 lg:w-80 xl:w-96">{renderStepper()}</div>
+            )}
+
+            {step < 4 && (
+              <button
+                onClick={() => {
+                  if (onClose && typeof onClose === "function") {
+                    onClose();
+                  } else {
+                    window.history.back();
+                  }
+                }}
+                aria-label="Close"
+                className="group flex-shrink-0 p-2 rounded-xl bg-white/80 hover:bg-white border border-blue-200/50 hover:border-violet-300 transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md"
+              >
+                <X className="w-5 h-5 text-blue-700 group-hover:text-blue-900 transition-colors" />
+              </button>
+            )}
+          </div>
+
+          {step < 4 && <div className="md:hidden mt-3 max-w-md mx-auto">{renderStepper()}</div>}
+        </div>
+      </header>
 
       {/* Content */}
-      <CurrentStep />
+      <React.Fragment key={step}>{CurrentStep()}</React.Fragment>
 
       {/* Footer */}
       {/* Footer - Step 3 */}
 {step < 4 && (
-  <div className="border-t-2 border-gray-200 bg-white">
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-5">
+  <div className="bf-footer border-t-2 border-gray-200 bg-white flex-shrink-0">
+    <div className="bf-container bf-footer-inner">
       <div className="flex gap-4">
         <button
           onClick={handleBack}
@@ -3390,7 +3396,7 @@ const ConfirmationStep = () => {
   isOpen={showPaymentModal}
   onClose={() => setShowPaymentModal(false)}
   bookingId={currentBookingId}
-  userEmail={clerkUser?.primaryEmailAddress?.emailAddress || user?.email}
+  userEmail={clerkUser?.primaryEmailAddress?.emailAddress}
   totalAmount={currentAmount}
   payfastMerchantId={import.meta.env.VITE_PAYFAST_MERCHANT_ID}
   onPaymentSuccess={() => {

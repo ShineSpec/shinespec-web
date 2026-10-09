@@ -21,7 +21,6 @@ import {
   updateBooking,
   cancelBooking,
   generateWorkerExplanation,
-  aiServiceMatch,
   chatbotQuery,
   getWorkerProfile,
   getWorkerBookings,
@@ -39,6 +38,7 @@ import {
   attachReferral
 } from "../controllers/authController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
+import { aiServiceMatch } from "../controllers/aiMatchController.js";
 import Worker from "../models/Worker.js";
 import User from "../models/User.js";
 import { connectDB } from "../lib/db.js";
