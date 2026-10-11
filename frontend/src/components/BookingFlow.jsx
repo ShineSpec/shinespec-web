@@ -191,7 +191,7 @@ useEffect(() => {
 
   const PRICING_STRUCTURE = {
     'Indoor Services': {
-      3: 5,
+      3: 290,
       4: 305,
       5: 320,
       6: 335,
